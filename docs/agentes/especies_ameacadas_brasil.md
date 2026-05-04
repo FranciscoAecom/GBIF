@@ -66,6 +66,7 @@ data/gbif/00_reference/threatened_species_brazil/
 data/gbif/03_gold/threatened_species_brazil/species.json
 data/gbif/03_gold/threatened_species_brazil/occurrences.json
 data/gbif/03_gold/threatened_species_brazil/datasets.json
+data/gbif/03_gold/threatened_species_brazil/threatened_species_occurrences.gpkg
 data/gbif/03_gold/threatened_species_brazil/schema.json
 data/gbif/03_gold/threatened_species_brazil/quality_report.json
 data/gbif/03_gold/threatened_species_brazil/manifest.json
@@ -125,6 +126,61 @@ Leitura:
 - `species.json` responde quais especies ameacadas entram na base.
 - `occurrences.json` responde onde e quando essas especies aparecem no GBIF dentro do Brasil.
 - `datasets.json` responde quais bases GBIF sustentam essas ocorrencias.
+
+## Saida Espacial
+
+A base `threatened_species_brazil` tambem deve gerar um GeoPackage para visualizacao em SIG:
+
+```text
+data/gbif/03_gold/threatened_species_brazil/threatened_species_occurrences.gpkg
+```
+
+Objetivo:
+
+- permitir visualizar em mapa as ocorrencias georreferenciadas das especies ameacadas no Brasil
+- abrir diretamente em QGIS, ArcGIS ou ferramentas compativeis com GeoPackage
+
+Regra de formacao:
+
+- o GeoPackage deve ser derivado de `occurrences.json`
+- cada feicao representa uma ocorrencia GBIF georreferenciada
+- `decimal_longitude` deve ser usado como coordenada X
+- `decimal_latitude` deve ser usado como coordenada Y
+- o sistema de coordenadas deve ser `EPSG:4326`
+- somente ocorrencias com latitude e longitude validas entram no `.gpkg`
+- ocorrencias sem coordenadas continuam preservadas em `occurrences.json`
+
+Campos minimos no GeoPackage:
+
+```text
+record_id
+gbif_id
+species_id
+scientific_name
+threat_status_br
+taxon_key
+dataset_key
+basis_of_record
+occurrence_status
+event_date
+country_code
+state_province
+municipality
+locality
+decimal_latitude
+decimal_longitude
+coordinate_uncertainty_in_meters
+has_geospatial_issue
+license
+references
+```
+
+Observacoes:
+
+- `threat_status_br` deve vir do relacionamento com `species.json`.
+- `dataset_key` permite ligar a feicao espacial a `datasets.json`.
+- O `.gpkg` e uma saida de consumo espacial, nao substitui os arquivos JSON relacionais.
+- Arquivos `.gpkg` da camada `gold` devem ser versionados via Git LFS.
 
 ## Campos Canonicos
 

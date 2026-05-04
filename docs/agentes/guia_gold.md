@@ -82,6 +82,7 @@ docs/agentes/especies_ameacadas_brasil.md
 - Nao deve consultar o `bronze` diretamente.
 - Deve produzir o arquivo de dados final, `schema.json`, `quality_report.json` e `manifest.json`.
 - Deve fazer backup antes de sobrescrever bases existentes.
+- Quando o produto tiver componente espacial, como `threatened_species_brazil`, deve produzir tambem `.gpkg` com CRS `EPSG:4326`.
 
 ## Manifesto
 
