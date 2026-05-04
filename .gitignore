@@ -16,6 +16,12 @@ tmp/
 downloads/
 *.log
 
+# Office temporary lock files
+~$*.xlsx
+~$*.xls
+~$*.docx
+~$*.pptx
+
 # Bronze: ignore unpacked GBIF snapshots and keep compacted bundles versionable via LFS.
 data/gbif/01_bronze/**/query/
 data/gbif/01_bronze/**/pages/
