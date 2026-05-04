@@ -76,6 +76,8 @@ O schema canonico inicial desse produto esta documentado em:
 docs/agentes/especies_ameacadas_brasil.md
 ```
 
+O metodo de construcao desse produto tambem esta documentado nesse arquivo, incluindo o papel de `checklist`, `occurrence`, `metadata` e `sampling_event`.
+
 ## Regras
 
 - A `gold` deve nascer da `silver`.

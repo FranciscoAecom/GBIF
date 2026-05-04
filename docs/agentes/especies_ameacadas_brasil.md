@@ -19,6 +19,76 @@ Montar uma base final que permita analisar especies ameacadas no Brasil a partir
 - datasets de origem
 - referencia oficial de ameaca
 
+## Metodo
+
+A lista MMA e a referencia para dizer quais especies sao ameacadas no Brasil.
+O GBIF entra para encontrar e organizar os dados relacionados a essas especies.
+
+Frase-guia do metodo:
+
+```text
+Vamos usar a lista MMA como referencia oficial de especies ameacadas,
+cruzar essas especies com dados GBIF em checklist, occurrence, metadata
+e, opcionalmente, sampling_event, e entao gerar a gold.
+```
+
+Fluxo metodologico:
+
+1. Referencia oficial
+   - Ler a lista MMA de especies ameacadas do Brasil.
+   - Preservar a fonte oficial, documento, ano e categoria de ameaca.
+
+2. Taxonomia e nomes
+   - Procurar essas especies no GBIF `checklist`.
+   - Resolver nomes, sinonimos, `taxon_key` e `accepted_taxon_key`.
+   - Registrar o status e a confianca do pareamento taxonomico.
+
+3. Ocorrencias
+   - Buscar no GBIF `occurrence` registros dessas especies no Brasil.
+   - Preservar localidade, data, coordenadas, dataset de origem e licenca.
+   - Manter ocorrencias sem coordenada em `occurrences.json`, mesmo que elas nao entrem no GeoPackage.
+
+4. Metadados
+   - Identificar em `metadata` os datasets GBIF que forneceram esses registros.
+   - Preservar titulo, tipo, organizacoes, DOI, licenca, homepage e citacao.
+
+5. Sampling event
+   - Quando disponivel, enriquecer ocorrencias com protocolo, metodo e esforco de amostragem.
+   - Tratar `sampling_event` como enriquecimento opcional, nao como requisito do MVP.
+
+6. Gold
+   - Gerar a base final em `data/gbif/03_gold/threatened_species_brazil/`.
+   - Produzir arquivos relacionais JSON, saida espacial GeoPackage e artefatos de controle.
+
+Papel de cada classe GBIF:
+
+```text
+checklist
+= ajuda a reconciliar nomes e taxonomia
+
+occurrence
+= traz os registros das especies no Brasil
+
+metadata
+= descreve os datasets de origem
+
+sampling_event
+= enriquece ocorrencias com metodo e esforco, quando existir
+```
+
+Saida final esperada:
+
+```text
+data/gbif/03_gold/threatened_species_brazil/
+|-- species.json
+|-- occurrences.json
+|-- datasets.json
+|-- threatened_species_occurrences.gpkg
+|-- schema.json
+|-- quality_report.json
+`-- manifest.json
+```
+
 ## Fonte Principal de Ameaca
 
 A fonte principal deve ser a lista oficial brasileira:
