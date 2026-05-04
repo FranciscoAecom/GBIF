@@ -128,6 +128,12 @@ Limite dessa escolha:
 - ela nao deve ser tratada como a versao normativa final mais atualizada da lista nacional
 - a `gold` final deve registrar claramente qual ato normativo vigente foi usado como fonte oficial
 
+Decisao para a primeira versao operacional:
+
+- usar os CSVs MMA Dados Abertos 2021 como fonte de referencia da primeira versao da `gold`
+- tratar portarias posteriores como melhoria futura ou etapa de validacao posterior
+- registrar essa decisao no `manifest.json` da `gold`
+
 ## Fonte Normativa Final
 
 Antes da publicacao da `gold` final, a referencia de ameaca deve ser validada e, se necessario, substituida ou complementada pelos atos normativos mais recentes do MMA.

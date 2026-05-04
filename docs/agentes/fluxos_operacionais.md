@@ -51,6 +51,10 @@ uv run python -m src.gbif.reference.threatened_species_brazil.build_reference
 uv run python -m src.gbif.reference.threatened_species_brazil.reconcile_gbif_taxonomy
 uv run python -m src.gbif.reference.threatened_species_brazil.apply_gbif_taxonomy_matches
 uv run python -m src.gbif.occurrence.bronze.extract_threatened_occurrences --date 20260504 --species-limit 10 --occurrence-limit-per-species 100
+uv run python -m src.gbif.gold.build_threatened_species_brazil --snapshot-date 2026-05-04
+uv run python -m src.gbif.gold.build_threatened_species_occurrences --date 20260504
+uv run python -m src.gbif.gold.build_threatened_species_datasets
+uv run python -m src.gbif.gold.build_threatened_species_geopackage
 ```
 
 Observacoes:
@@ -61,5 +65,9 @@ Observacoes:
 - `reconcile_gbif_taxonomy` usa a API publica `species/match` do GBIF para obter `taxonKey` e nome aceito.
 - `apply_gbif_taxonomy_matches` gera `threatened_species_brazil_reference_gbif_matched.json` com os campos taxonomicos preenchidos.
 - `extract_threatened_occurrences` usa `/occurrence/search` com `country=BR` e `taxonKey`.
+- `build_threatened_species_occurrences` gera `occurrences.json` a partir do bronze de ocorrencias.
+- `build_threatened_species_datasets` gera `datasets.json` a partir dos `dataset_key` observados nas ocorrencias e metadados publicos do GBIF.
+- `build_threatened_species_geopackage` gera `threatened_species_occurrences.gpkg` com ocorrencias georreferenciadas em `EPSG:4326`.
 - Para carga grande de ocorrencias, trocar o ultimo passo pela Download API assincrona quando houver conta GBIF.
 - A referencia MMA 2021 em CSV e operacional/provisoria para desenvolvimento do pipeline; antes da gold final, validar contra as portarias MMA vigentes.
+- Para a primeira versao operacional, foi decidido usar MMA Dados Abertos 2021 como referencia da gold.

@@ -22,6 +22,11 @@ Limite:
 
 - a versao final da `gold` deve ser validada contra a lista normativa vigente, como Portaria MMA nº 148/2022 e atualizacoes posteriores
 
+Decisao da primeira versao:
+
+- usar os CSVs MMA Dados Abertos 2021 como referencia da primeira versao operacional da gold
+- manter portarias posteriores como melhoria/validacao futura
+
 Fontes de apoio:
 
 - ICMBio para fauna
