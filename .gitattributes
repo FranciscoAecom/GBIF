@@ -3,5 +3,6 @@ data/gbif/01_bronze/**/*.parquet filter=lfs diff=lfs merge=lfs -text
 data/gbif/01_bronze/**/*.gpkg filter=lfs diff=lfs merge=lfs -text
 data/gbif/01_bronze/**/*.sqlite filter=lfs diff=lfs merge=lfs -text
 data/gbif/00_reference/**/*.xlsx filter=lfs diff=lfs merge=lfs -text
+data/gbif/00_reference/**/*.pdf filter=lfs diff=lfs merge=lfs -text
 data/gbif/03_gold/**/*.gpkg filter=lfs diff=lfs merge=lfs -text
 docs/referencias/**/*.pdf filter=lfs diff=lfs merge=lfs -text

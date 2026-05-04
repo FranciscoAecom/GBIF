@@ -37,16 +37,24 @@ Fluxo metodologico:
 1. Referencia oficial
    - Ler a lista MMA de especies ameacadas do Brasil.
    - Preservar a fonte oficial, documento, ano e categoria de ameaca.
+   - Manter todas as categorias observadas na referencia oficial usada.
+   - Filtros por categoria, quando necessarios, devem ser aplicados como recorte analitico posterior e nao como exclusao da referencia base.
+   - Script previsto: `src.gbif.reference.threatened_species_brazil.download_official_reference`.
+   - Script previsto: `src.gbif.reference.threatened_species_brazil.build_reference`.
 
 2. Taxonomia e nomes
    - Procurar essas especies no GBIF `checklist`.
    - Resolver nomes, sinonimos, `taxon_key` e `accepted_taxon_key`.
    - Registrar o status e a confianca do pareamento taxonomico.
+   - Script previsto: `src.gbif.reference.threatened_species_brazil.reconcile_gbif_taxonomy`.
+   - Script previsto: `src.gbif.reference.threatened_species_brazil.apply_gbif_taxonomy_matches`.
 
 3. Ocorrencias
    - Buscar no GBIF `occurrence` registros dessas especies no Brasil.
    - Preservar localidade, data, coordenadas, dataset de origem e licenca.
    - Manter ocorrencias sem coordenada em `occurrences.json`, mesmo que elas nao entrem no GeoPackage.
+   - Script inicial sem conta: `src.gbif.occurrence.bronze.extract_threatened_occurrences`.
+   - Para carga grande, usar Download API assincrona do GBIF quando houver conta.
 
 4. Metadados
    - Identificar em `metadata` os datasets GBIF que forneceram esses registros.
@@ -97,6 +105,47 @@ A fonte principal deve ser a lista oficial brasileira:
 
 Essa escolha foi feita porque o produto tem recorte nacional brasileiro. A lista nacional e mais adequada do que iniciar pela IUCN quando a pergunta e sobre especies ameacadas no Brasil.
 
+## Fonte Operacional Provisoria
+
+Para iniciar o desenvolvimento do pipeline, foi usada a base tabular do MMA disponivel no Portal de Dados Abertos:
+
+```text
+MMA Dados Abertos - Especies Ameacadas
+FAUNA - Lista de Especies Ameacadas - 2021.csv
+FLORA - Lista de Especies Ameacadas - 2021.csv
+```
+
+Justificativa:
+
+- os arquivos estao em CSV, portanto permitem leitura automatizada e reprodutivel
+- as colunas trazem nomes cientificos, grupos/familias e categorias
+- a estrutura tabular permite desenvolver e testar o pipeline de referencia, reconciliacao taxonomica e cruzamento com GBIF
+- os arquivos sao publicados no portal oficial de dados abertos do MMA
+
+Limite dessa escolha:
+
+- essa base 2021 e uma referencia operacional para desenvolvimento
+- ela nao deve ser tratada como a versao normativa final mais atualizada da lista nacional
+- a `gold` final deve registrar claramente qual ato normativo vigente foi usado como fonte oficial
+
+## Fonte Normativa Final
+
+Antes da publicacao da `gold` final, a referencia de ameaca deve ser validada e, se necessario, substituida ou complementada pelos atos normativos mais recentes do MMA.
+
+Atos normativos a considerar:
+
+- Portaria MMA nº 148/2022
+- Portaria MMA nº 300/2022
+- Portaria MMA nº 354/2023
+- atualizacoes posteriores publicadas pelo MMA, incluindo listas especificas por grupo quando existirem
+
+Regra:
+
+- a base CSV 2021 pode ser usada para desenvolvimento do pipeline
+- a base final deve usar a lista oficial vigente ou documentar explicitamente por que uma versao anterior foi mantida
+- quando a fonte normativa estiver em PDF/anexo legal, sera necessario criar uma etapa de conversao/curadoria para transforma-la em tabela de referencia
+- o `manifest.json` da `gold` deve registrar a fonte normativa exata, URL, documento, data e versao
+
 ## Fontes de Apoio
 
 Para enriquecer e validar a referencia principal:
@@ -128,6 +177,15 @@ Referencia de ameaca:
 
 ```text
 data/gbif/00_reference/threatened_species_brazil/
+```
+
+Arquivos de referencia gerados no fluxo inicial:
+
+```text
+data/gbif/00_reference/threatened_species_brazil/official_reference_manifest.json
+data/gbif/00_reference/threatened_species_brazil/threatened_species_brazil_reference.json
+data/gbif/00_reference/threatened_species_brazil/gbif_taxonomy_matches.json
+data/gbif/00_reference/threatened_species_brazil/threatened_species_brazil_reference_gbif_matched.json
 ```
 
 ## Saidas Previstas

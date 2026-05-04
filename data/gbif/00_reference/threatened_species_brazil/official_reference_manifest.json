@@ -1,0 +1,57 @@
+{
+  "source": "MMA Dados Abertos - Espécies Ameaçadas",
+  "package_url": "https://dados.mma.gov.br/api/3/action/package_show?id=especies-ameacadas",
+  "package_id": "41a79b71-445f-4a6a-8c70-d46af991292a",
+  "package_title": "Espécies Ameaçadas",
+  "notes": "Uma das grandes preocupações do governo é com as espécies brasileiras ameaçadas de extinção, sobreexplotadas - exploração excessiva, não-sustentável, com consequências negativas que, cedo ou tarde, serão prejudiciais do ponto de vista físico/quantitativo, qualitativo, econômico, social ou ambiental - ou ameaçadas de sobreexplotação, requerendo políticas específicas de recuperação tanto de fauna terrestre e aquática como de flora.\r\n\r\nNota explicativa de 6/6/23:\r\nA Portaria MMA nº 148/2022 altera os anexos da Portaria nº 443, de 17 de dezembro de 2014, da Portaria nº 444, de 17 de dezembro de 2014, e da Portaria nº 445, de 17 de dezembro de 2014, referentes à atualização da Lista Nacional de Espécies Ameaçadas de Extinção.\r\nAtualmente, as espécies ameaçadas de extinção reconhecidas oficialmente em nível nacional são as que constam na Portaria MMA nº 148/2022, bem como as seguintes espécies de elasmobrânquios: I - Carcharhinus acronotus - VU; II - Carcharhinus brevipinna - VU; III - Carcharhinus falciformis - CR; IV - Carcharhinus leucas - VU; e V - Isurus oxyrinchus - CR.\r\nEssas informações foram apresentadas na 66ª Reunião da Comissão Nacional da Biodiversidade, realizada em 17/06/2021.",
+  "resources": [
+    {
+      "name": "Dicionário de Dados - Espécies Ameaçadas",
+      "format": "PDF",
+      "url": "https://dados.mma.gov.br/dataset/41a79b71-445f-4a6a-8c70-d46af991292a/resource/7fa52b8a-91e1-4ab5-aa88-b99dc6a70b8c/download/dicionario-de-dados-especies-ameacadas.pdf",
+      "local_path": "data\\gbif\\00_reference\\threatened_species_brazil\\raw\\dicionário_de_dados_espécies_ameaçadas.pdf",
+      "resource_id": "7fa52b8a-91e1-4ab5-aa88-b99dc6a70b8c",
+      "last_modified": "2018-09-26T11:02:49.326165"
+    },
+    {
+      "name": "Espécies Ameaçadas 2018",
+      "format": "CSV",
+      "url": "https://dados.mma.gov.br/dataset/41a79b71-445f-4a6a-8c70-d46af991292a/resource/1df8fa32-c2da-4012-ac37-141c4167dfc8/download/copia-de-dados-abertos_especiesameacadas2014.csv",
+      "local_path": "data\\gbif\\00_reference\\threatened_species_brazil\\raw\\espécies_ameaçadas_2018.csv",
+      "resource_id": "1df8fa32-c2da-4012-ac37-141c4167dfc8",
+      "last_modified": "2018-09-26T11:01:33.225176"
+    },
+    {
+      "name": "Especies_Ameacadas_de_Extincao 2019",
+      "format": "CSV",
+      "url": "https://dados.mma.gov.br/dataset/41a79b71-445f-4a6a-8c70-d46af991292a/resource/f6c3583a-c232-4cc3-8652-463eb55985d9/download/especies_ameacadas_de_extincao-2019.csv",
+      "local_path": "data\\gbif\\00_reference\\threatened_species_brazil\\raw\\especies_ameacadas_de_extincao_2019.csv",
+      "resource_id": "f6c3583a-c232-4cc3-8652-463eb55985d9",
+      "last_modified": "2019-08-14T19:37:47.298780"
+    },
+    {
+      "name": "Lista de Espécies Ameaçadas - 2020",
+      "format": "CSV",
+      "url": "https://dados.mma.gov.br/dataset/41a79b71-445f-4a6a-8c70-d46af991292a/resource/1f13b062-f3f6-4198-a4c5-3581548bebec/download/lista-de-especies-ameacas-2020.csv",
+      "local_path": "data\\gbif\\00_reference\\threatened_species_brazil\\raw\\lista_de_espécies_ameaçadas_2020.csv",
+      "resource_id": "1f13b062-f3f6-4198-a4c5-3581548bebec",
+      "last_modified": "2020-02-26T18:41:50.742785"
+    },
+    {
+      "name": "FAUNA - Lista de Espécies Ameaçadas - 2021.csv",
+      "format": "CSV",
+      "url": "https://dados.mma.gov.br/dataset/41a79b71-445f-4a6a-8c70-d46af991292a/resource/544f9312-d4c6-4d12-b6ac-51bf3039bbb7/download/fauna-ameacada-2021.csv",
+      "local_path": "data\\gbif\\00_reference\\threatened_species_brazil\\raw\\fauna_lista_de_espécies_ameaçadas_2021_csv.csv",
+      "resource_id": "544f9312-d4c6-4d12-b6ac-51bf3039bbb7",
+      "last_modified": "2023-06-16T14:05:52.250257"
+    },
+    {
+      "name": "FLORA - Lista de Espécies Ameaçadas - 2021.csv",
+      "format": "CSV",
+      "url": "https://dados.mma.gov.br/dataset/41a79b71-445f-4a6a-8c70-d46af991292a/resource/a64f6015-6058-47c5-b4b0-362451240da1/download/flora-ameacada-2021.csv",
+      "local_path": "data\\gbif\\00_reference\\threatened_species_brazil\\raw\\flora_lista_de_espécies_ameaçadas_2021_csv.csv",
+      "resource_id": "a64f6015-6058-47c5-b4b0-362451240da1",
+      "last_modified": "2023-06-16T14:06:44.314832"
+    }
+  ]
+}
