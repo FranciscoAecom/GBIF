@@ -1,0 +1,45 @@
+# Python
+__pycache__/
+*.pyc
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+
+# Virtual environments
+.venv/
+.venv_geo/
+
+# Temporary exploration and download artifacts
+.tmp_*/
+tmp/
+downloads/
+*.log
+
+# Bronze: ignore unpacked GBIF snapshots and keep compacted bundles versionable via LFS.
+data/gbif/01_bronze/**/query/
+data/gbif/01_bronze/**/pages/
+data/gbif/01_bronze/**/records/
+data/gbif/01_bronze/**/downloads/
+data/gbif/01_bronze/**/raw/
+
+# Silver: generated normalized datasets.
+data/gbif/02_silver/**/*.json
+data/gbif/02_silver/**/*.jsonl
+data/gbif/02_silver/**/*.csv
+data/gbif/02_silver/**/*.tsv
+data/gbif/02_silver/**/*.parquet
+data/gbif/02_silver/**/*.zip
+
+# Gold: generated analytical outputs.
+data/gbif/03_gold/**/*.json
+data/gbif/03_gold/**/*.jsonl
+data/gbif/03_gold/**/*.csv
+data/gbif/03_gold/**/*.tsv
+data/gbif/03_gold/**/*.xlsx
+data/gbif/03_gold/**/*.parquet
+data/gbif/03_gold/**/*.zip
+data/gbif/03_gold/**/backup/
+
+# Git LFS should cover large binary artifacts that are intentionally versioned.
+# Do not ignore compacted bronze snapshots, reference spreadsheets, PDFs, or GeoPackage outputs.
