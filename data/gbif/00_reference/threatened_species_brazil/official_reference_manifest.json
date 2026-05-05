@@ -14,30 +14,6 @@
       "last_modified": "2018-09-26T11:02:49.326165"
     },
     {
-      "name": "Espécies Ameaçadas 2018",
-      "format": "CSV",
-      "url": "https://dados.mma.gov.br/dataset/41a79b71-445f-4a6a-8c70-d46af991292a/resource/1df8fa32-c2da-4012-ac37-141c4167dfc8/download/copia-de-dados-abertos_especiesameacadas2014.csv",
-      "local_path": "data\\gbif\\00_reference\\threatened_species_brazil\\raw\\espécies_ameaçadas_2018.csv",
-      "resource_id": "1df8fa32-c2da-4012-ac37-141c4167dfc8",
-      "last_modified": "2018-09-26T11:01:33.225176"
-    },
-    {
-      "name": "Especies_Ameacadas_de_Extincao 2019",
-      "format": "CSV",
-      "url": "https://dados.mma.gov.br/dataset/41a79b71-445f-4a6a-8c70-d46af991292a/resource/f6c3583a-c232-4cc3-8652-463eb55985d9/download/especies_ameacadas_de_extincao-2019.csv",
-      "local_path": "data\\gbif\\00_reference\\threatened_species_brazil\\raw\\especies_ameacadas_de_extincao_2019.csv",
-      "resource_id": "f6c3583a-c232-4cc3-8652-463eb55985d9",
-      "last_modified": "2019-08-14T19:37:47.298780"
-    },
-    {
-      "name": "Lista de Espécies Ameaçadas - 2020",
-      "format": "CSV",
-      "url": "https://dados.mma.gov.br/dataset/41a79b71-445f-4a6a-8c70-d46af991292a/resource/1f13b062-f3f6-4198-a4c5-3581548bebec/download/lista-de-especies-ameacas-2020.csv",
-      "local_path": "data\\gbif\\00_reference\\threatened_species_brazil\\raw\\lista_de_espécies_ameaçadas_2020.csv",
-      "resource_id": "1f13b062-f3f6-4198-a4c5-3581548bebec",
-      "last_modified": "2020-02-26T18:41:50.742785"
-    },
-    {
       "name": "FAUNA - Lista de Espécies Ameaçadas - 2021.csv",
       "format": "CSV",
       "url": "https://dados.mma.gov.br/dataset/41a79b71-445f-4a6a-8c70-d46af991292a/resource/544f9312-d4c6-4d12-b6ac-51bf3039bbb7/download/fauna-ameacada-2021.csv",
@@ -53,5 +29,19 @@
       "resource_id": "a64f6015-6058-47c5-b4b0-362451240da1",
       "last_modified": "2023-06-16T14:06:44.314832"
     }
-  ]
+  ],
+  "operational_reference_decision": {
+    "decision": "Manter no raw apenas os CSVs MMA Dados Abertos 2021 e o dicionario de dados.",
+    "reason": "A primeira versao operacional da gold usa os CSVs de fauna e flora de 2021; arquivos historicos de 2018, 2019 e 2020 foram removidos para evitar ambiguidade metodologica.",
+    "kept_raw_files": [
+      "data\\gbif\\00_reference\\threatened_species_brazil\\raw\\dicionário_de_dados_espécies_ameaçadas.pdf",
+      "data\\gbif\\00_reference\\threatened_species_brazil\\raw\\fauna_lista_de_espécies_ameaçadas_2021_csv.csv",
+      "data\\gbif\\00_reference\\threatened_species_brazil\\raw\\flora_lista_de_espécies_ameaçadas_2021_csv.csv"
+    ],
+    "removed_raw_years": [
+      2018,
+      2019,
+      2020
+    ]
+  }
 }

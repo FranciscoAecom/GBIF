@@ -12,6 +12,11 @@ import requests
 CKAN_PACKAGE_URL = "https://dados.mma.gov.br/api/3/action/package_show?id=especies-ameacadas"
 REFERENCE_DIR = Path("data/gbif/00_reference/threatened_species_brazil")
 RAW_DIR = REFERENCE_DIR / "raw"
+ALLOWED_RESOURCE_IDS = {
+    "7fa52b8a-91e1-4ab5-aa88-b99dc6a70b8c",  # Dicionario de dados
+    "544f9312-d4c6-4d12-b6ac-51bf3039bbb7",  # Fauna 2021
+    "a64f6015-6058-47c5-b4b0-362451240da1",  # Flora 2021
+}
 
 
 def slugify(value: str) -> str:
@@ -43,6 +48,8 @@ def download_reference(args: argparse.Namespace) -> None:
         name = resource.get("name") or resource.get("id")
         url = resource.get("url")
         if not url or fmt not in {"CSV", "PDF"}:
+            continue
+        if resource.get("id") not in ALLOWED_RESOURCE_IDS:
             continue
 
         suffix = ".pdf" if fmt == "PDF" else ".csv"
@@ -87,4 +94,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-
