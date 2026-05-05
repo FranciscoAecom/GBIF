@@ -18,6 +18,7 @@ REFERENCE_PATH = Path(
 )
 REQUEST_ENDPOINT = "occurrence/download/request"
 DOWNLOAD_ENDPOINT = "occurrence/download"
+DOWNLOAD_FILE_BASE_URL = "https://api.gbif.org/occurrence/download/request"
 
 
 def write_json(path: Path, payload: dict[str, Any]) -> None:
@@ -39,6 +40,10 @@ def request_dir(snapshot_date: str) -> Path:
 
 def downloaded_dir(snapshot_date: str) -> Path:
     return bronze_snapshot_dir("occurrence", snapshot_date) / "downloads"
+
+
+def download_file_url(download_key: str) -> str:
+    return f"{DOWNLOAD_FILE_BASE_URL}/{download_key}.zip"
 
 
 def read_credentials() -> tuple[str, str, str]:
@@ -154,7 +159,7 @@ def submit(args: argparse.Namespace) -> str:
             "status": "SUBMITTED",
             "download_key": download_key,
             "status_endpoint": f"{BASE_URL}/{DOWNLOAD_ENDPOINT}/{download_key}",
-            "download_url": f"{BASE_URL}/{REQUEST_ENDPOINT}/{download_key}.zip",
+            "download_url": download_file_url(download_key),
             "request_file": str(request_path),
         }
     )
@@ -179,13 +184,14 @@ def download(args: argparse.Namespace) -> Path:
         raise RuntimeError(f"Download {args.download_key} is not ready. Current status: {info.get('status')}")
 
     output_path = downloaded_dir(args.date) / f"{args.download_key}.zip"
-    client.download_file(f"{BASE_URL}/{REQUEST_ENDPOINT}/{args.download_key}.zip", output_path)
+    source_url = info.get("downloadLink") or download_file_url(args.download_key)
+    client.download_file(source_url, output_path)
     write_json(
         downloaded_dir(args.date) / f"{args.download_key}_download_manifest.json",
         {
             "downloaded_at": utc_now(),
             "download_key": args.download_key,
-            "source_url": f"{BASE_URL}/{REQUEST_ENDPOINT}/{args.download_key}.zip",
+            "source_url": source_url,
             "output_path": str(output_path),
             "gbif_status": info.get("status"),
             "doi": info.get("doi"),
