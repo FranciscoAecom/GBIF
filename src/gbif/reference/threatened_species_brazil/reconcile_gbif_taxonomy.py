@@ -4,10 +4,9 @@ from __future__ import annotations
 
 import argparse
 import json
-import time
 from pathlib import Path
 
-import requests
+from src.gbif.shared.api_client import GbifApiClient
 
 
 REFERENCE_DIR = Path("data/gbif/00_reference/threatened_species_brazil")
@@ -15,14 +14,8 @@ INPUT_PATH = REFERENCE_DIR / "threatened_species_brazil_reference.json"
 OUTPUT_PATH = REFERENCE_DIR / "gbif_taxonomy_matches.json"
 
 
-def match_name(session: requests.Session, name: str, timeout: int) -> dict:
-    response = session.get(
-        "https://api.gbif.org/v1/species/match",
-        params={"name": name},
-        timeout=timeout,
-    )
-    response.raise_for_status()
-    return response.json()
+def match_name(client: GbifApiClient, name: str) -> dict:
+    return client.get("species/match", params={"name": name})
 
 
 def reconcile(args: argparse.Namespace) -> None:
@@ -40,14 +33,14 @@ def reconcile(args: argparse.Namespace) -> None:
         matched_species_ids = {record.get("species_id") for record in matches}
         print(f"resuming from {output_path} with {len(matches)} existing matches")
 
-    session = requests.Session()
+    client = GbifApiClient(timeout=args.timeout, sleep_seconds=args.sleep_seconds)
     for index, record in enumerate(records, start=1):
         if record["species_id"] in matched_species_ids:
             continue
 
         name = record["scientific_name"]
         try:
-            match = match_name(session, name, args.timeout)
+            match = match_name(client, name)
             matches.append(
                 {
                     "species_id": record["species_id"],
@@ -68,7 +61,6 @@ def reconcile(args: argparse.Namespace) -> None:
             print(f"{index}/{len(records)} failed {name}: {exc}")
         if index % args.checkpoint_every == 0 or index == len(records):
             output_path.write_text(json.dumps(matches, ensure_ascii=False, indent=2), encoding="utf-8")
-        time.sleep(args.sleep_seconds)
 
     output_path.write_text(json.dumps(matches, ensure_ascii=False, indent=2), encoding="utf-8")
     print(f"saved {len(matches)} GBIF taxonomy matches to {output_path}")

@@ -56,6 +56,7 @@ Fluxo metodologico:
    - Manter ocorrencias sem coordenada em `occurrences.json`, mesmo que elas nao entrem no GeoPackage.
    - Para carga operacional, usar Download API assincrona do GBIF com conta.
    - Script previsto: `src.gbif.occurrence.bronze.async_threatened_occurrence_download`.
+   - A gold de ocorrencias deve ser gerada a partir do `occurrence.txt` dentro do ZIP DWCA oficial baixado do GBIF.
 
 4. Metadados
    - Identificar em `metadata` os datasets GBIF que forneceram esses registros.
@@ -216,7 +217,7 @@ A fonte principal deve ser a lista oficial brasileira:
 
 Essa escolha foi feita porque o produto tem recorte nacional brasileiro. A lista nacional e mais adequada do que iniciar pela IUCN quando a pergunta e sobre especies ameacadas no Brasil.
 
-## Fonte Operacional Provisoria
+## Fonte Operacional da Primeira Versao
 
 Para iniciar o desenvolvimento do pipeline, foi usada a base tabular do MMA disponivel no Portal de Dados Abertos:
 
@@ -235,7 +236,7 @@ Justificativa:
 
 Limite dessa escolha:
 
-- essa base 2021 e uma referencia operacional para desenvolvimento
+- essa base 2021 e a referencia operacional definida para a primeira versao
 - ela nao deve ser tratada como a versao normativa final mais atualizada da lista nacional
 - a `gold` final deve registrar claramente qual ato normativo vigente foi usado como fonte oficial
 
@@ -244,6 +245,52 @@ Decisao para a primeira versao operacional:
 - usar os CSVs MMA Dados Abertos 2021 como fonte de referencia da primeira versao da `gold`
 - tratar portarias posteriores como melhoria futura ou etapa de validacao posterior
 - registrar essa decisao no `manifest.json` da `gold`
+
+## Normalizacao da Lista MMA
+
+A normalizacao da lista MMA e a etapa que transforma os arquivos brutos de fauna e flora em uma base unica, organizada e padronizada para o projeto.
+
+Em linguagem simples:
+
+```text
+O MMA entrega arquivos CSV com colunas proprias.
+O projeto le esses arquivos e reorganiza tudo em um mesmo modelo de campos.
+```
+
+Essa etapa nao muda a decisao oficial de ameaca. Ela apenas deixa os dados em um formato mais facil de cruzar com o GBIF.
+
+O que a normalizacao faz:
+
+- le os CSVs oficiais de fauna e flora de 2021
+- identifica a coluna do nome cientifico em cada arquivo
+- identifica familia, ordem e grupo taxonomico quando disponiveis
+- extrai a categoria de ameaca em texto, como `Em Perigo (EN)`
+- extrai o codigo da categoria, como `EN`, `VU`, `CR`, `RE`, `EW` ou `EX`
+- marca se o registro veio da fauna ou da flora
+- cria um identificador interno `species_id`
+- preserva o caminho do arquivo de origem e o numero da linha original
+- remove duplicidades evidentes, quando a mesma especie aparece repetida com o mesmo grupo e a mesma categoria
+- gera um arquivo padronizado para as proximas etapas
+
+Arquivo gerado:
+
+```text
+data/gbif/00_reference/threatened_species_brazil/threatened_species_brazil_reference.json
+```
+
+Exemplo conceitual:
+
+```text
+Entrada MMA:
+"Em Perigo (EN)"
+
+Saida normalizada:
+threat_status_br = "Em Perigo (EN)"
+threat_status_br_code = "EN"
+threat_status_br_year = 2021
+```
+
+Depois dessa normalizacao, a lista e cruzada com o GBIF para obter nome aceito, sinonimos, `taxon_key` e classificacao taxonomica.
 
 ## Fonte Normativa Final
 

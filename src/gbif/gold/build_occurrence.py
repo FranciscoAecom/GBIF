@@ -5,8 +5,10 @@ from __future__ import annotations
 import argparse
 from pathlib import Path
 
-from src.gbif.gold.shared import read_json, write_gold_product
+from src.gbif.gold.shared import backup_existing_files, build_schema, write_json
+from src.gbif.shared.json_stream import iter_json_array, write_json_array
 from src.gbif.shared.paths import bronze_bundle_path, gold_product_dir, silver_snapshot_dir
+from src.gbif.shared.quality_checks import empty_quality_counts, update_quality_counts
 
 
 FIELDS = [
@@ -46,11 +48,11 @@ FIELDS = [
 ]
 
 
-def load_silver_records(snapshot_date: str) -> list[dict]:
+def silver_records_path(snapshot_date: str) -> Path:
     path = silver_snapshot_dir("occurrence", snapshot_date) / "allrecords.json"
     if not path.exists():
         raise FileNotFoundError(f"Silver occurrence file not found: {path}")
-    return read_json(path)
+    return path
 
 
 def transform_record(record: dict) -> dict:
@@ -94,28 +96,38 @@ def transform_record(record: dict) -> dict:
 
 
 def build_gold(args: argparse.Namespace) -> Path:
-    silver_records = load_silver_records(args.date)
-    records = [transform_record(record) for record in silver_records]
+    source_path = silver_records_path(args.date)
     output_dir = gold_product_dir("occurrence")
-    write_gold_product(
-        output_dir=output_dir,
-        data_file_name="allrecords.json",
-        records=records,
-        fields=FIELDS,
-        schema_title="GBIF Gold Biodiversity Records",
-        extra_quality={
-            "source_layer": "silver",
-            "source_path": str(silver_snapshot_dir("occurrence", args.date) / "allrecords.json"),
-        },
-        manifest={
-            "product": "occurrence",
-            "source_class": "occurrence",
-            "source_silver_snapshot": args.date,
-            "source_silver_file": str(silver_snapshot_dir("occurrence", args.date) / "allrecords.json"),
-            "source_bronze_bundle": str(bronze_bundle_path("occurrence", args.date)),
-        },
+    output_dir.mkdir(parents=True, exist_ok=True)
+    backup_existing_files(output_dir, ["allrecords.json", "schema.json", "quality_report.json", "manifest.json"])
+
+    quality_counts = empty_quality_counts(FIELDS)
+    record_count = write_json_array(
+        output_dir / "allrecords.json",
+        (transform_record(record) for record in iter_json_array(source_path)),
+        on_record=lambda record: update_quality_counts(quality_counts, record, FIELDS),
     )
-    print(f"saved {len(records)} gold occurrence records to {output_dir}")
+    quality_counts.update(
+        {
+            "source_layer": "silver",
+            "source_path": str(source_path),
+        }
+    )
+    manifest = {
+        "product": "occurrence",
+        "source_class": "occurrence",
+        "source_silver_snapshot": args.date,
+        "source_silver_file": str(source_path),
+        "source_bronze_bundle": str(bronze_bundle_path("occurrence", args.date)),
+        "gold_file": str(output_dir / "allrecords.json"),
+        "schema_file": str(output_dir / "schema.json"),
+        "quality_report_file": str(output_dir / "quality_report.json"),
+        "record_count": record_count,
+    }
+    write_json(output_dir / "schema.json", build_schema([], FIELDS, "GBIF Gold Biodiversity Records"))
+    write_json(output_dir / "quality_report.json", quality_counts)
+    write_json(output_dir / "manifest.json", manifest)
+    print(f"saved {record_count} gold occurrence records to {output_dir}")
     return output_dir
 
 

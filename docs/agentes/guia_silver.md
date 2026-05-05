@@ -21,4 +21,5 @@ data/gbif/02_silver/metadata/YYYYMMDD/alldatasets.json
 - Converter vazios para `null`.
 - Nao imputar informacao ausente.
 - Gerar `quality_report.json`.
-
+- Para bases potencialmente grandes, como `occurrence`, ler e escrever registros de forma incremental sempre que possivel.
+- `occurrence` e `metadata` ja seguem o padrao de escrita incremental em JSON para evitar acumulo desnecessario em memoria.

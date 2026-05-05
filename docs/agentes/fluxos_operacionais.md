@@ -39,7 +39,7 @@ uv run python -m src.gbif.occurrence.bronze.async_threatened_occurrence_download
 uv run python -m src.gbif.occurrence.bronze.async_threatened_occurrence_download status --date YYYYMMDD --download-key <download_key>
 uv run python -m src.gbif.occurrence.bronze.async_threatened_occurrence_download download --date YYYYMMDD --download-key <download_key>
 uv run python -m src.gbif.gold.build_threatened_species_brazil --snapshot-date YYYY-MM-DD
-uv run python -m src.gbif.gold.build_threatened_species_occurrences --date YYYYMMDD
+uv run python -m src.gbif.gold.build_threatened_species_occurrences --date YYYYMMDD --download-key <download_key>
 uv run python -m src.gbif.gold.build_threatened_species_datasets
 uv run python -m src.gbif.gold.build_threatened_species_geopackage
 ```
@@ -54,11 +54,11 @@ Observacoes:
 - `async_threatened_occurrence_download` usa a Download API assincrona do GBIF para volumes grandes.
 - O pedido completo usa todos os `TAXON_KEY` reconciliados entre MMA e GBIF.
 - Limites opcionais devem ficar restritos a testes controlados ou diagnosticos tecnicos.
-- `build_threatened_species_occurrences` gera `occurrences.json` a partir do bronze de ocorrencias.
-- `build_threatened_species_datasets` gera `datasets.json` a partir dos `dataset_key` observados nas ocorrencias e metadados publicos do GBIF.
-- `build_threatened_species_geopackage` gera `threatened_species_occurrences.gpkg` com ocorrencias georreferenciadas em `EPSG:4326`.
+- `build_threatened_species_occurrences` gera `occurrences.json` lendo o `occurrence.txt` dentro do ZIP DWCA oficial baixado do GBIF.
+- `build_threatened_species_datasets` gera `datasets.json` a partir dos `dataset_key` observados nas ocorrencias e metadados publicos do GBIF, lendo `occurrences.json` em streaming.
+- `build_threatened_species_geopackage` gera `threatened_species_occurrences.gpkg` com ocorrencias georreferenciadas em `EPSG:4326`, gravando em lotes para suportar volumes grandes.
 - Para carga grande de ocorrencias, usar a Download API assincrona.
-- A referencia MMA 2021 em CSV e operacional/provisoria para desenvolvimento do pipeline; antes da gold final, validar contra as portarias MMA vigentes.
+- A referencia MMA 2021 em CSV e a referencia operacional da primeira versao; antes da gold final normativa, validar contra as portarias MMA vigentes.
 - Para a primeira versao operacional, foi decidido usar MMA Dados Abertos 2021 como referencia da gold.
 
 ## Download assincrono GBIF
@@ -158,4 +158,5 @@ data/gbif/01_bronze/occurrence/YYYYMMDD/downloads/<download_key>.zip
 data/gbif/01_bronze/occurrence/YYYYMMDD/downloads/<download_key>_download_manifest.json
 ```
 
-Depois do ZIP no bronze, os proximos passos sao transformar esse arquivo para silver e gerar a gold.
+Depois do ZIP no bronze, o produto `threatened_species_brazil` gera `occurrences.json` diretamente a partir do `occurrence.txt` do DWCA oficial.
+Os passos seguintes leem `occurrences.json` de forma incremental para gerar `datasets.json` e o GeoPackage.

@@ -8,9 +8,10 @@ import shutil
 
 from src.gbif.shared.archive_data import unpack_snapshot
 from src.gbif.shared.dates import snapshot_date_iso
+from src.gbif.shared.json_stream import write_json_array
 from src.gbif.shared.normalize import clean_list, clean_text
 from src.gbif.shared.paths import bronze_bundle_path, bronze_snapshot_dir, silver_snapshot_dir
-from src.gbif.shared.quality_checks import build_quality_report
+from src.gbif.shared.quality_checks import empty_quality_counts, update_quality_counts
 
 
 FIELDS = [
@@ -63,23 +64,30 @@ def transform_record(raw: dict, bronze_file_path: str, snapshot_date: str) -> di
 def build_silver(args: argparse.Namespace) -> None:
     snapshot_dir = unpack_snapshot(bronze_bundle_path("metadata", args.date), bronze_snapshot_dir("metadata", args.date))
     try:
-        records = []
-        for raw_path in sorted((snapshot_dir / "records").glob("*.json")):
-            raw = json.loads(raw_path.read_text(encoding="utf-8"))
-            records.append(transform_record(raw, str(raw_path), snapshot_date_iso(args.date)))
+        snapshot_date = snapshot_date_iso(args.date)
+
+        def transformed_records():
+            for raw_path in sorted((snapshot_dir / "records").glob("*.json")):
+                raw = json.loads(raw_path.read_text(encoding="utf-8"))
+                yield transform_record(raw, str(raw_path), snapshot_date)
 
         output_dir = silver_snapshot_dir("metadata", args.date)
         output_dir.mkdir(parents=True, exist_ok=True)
-        (output_dir / "alldatasets.json").write_text(json.dumps(records, ensure_ascii=False, indent=2), encoding="utf-8")
+        quality_counts = empty_quality_counts(FIELDS)
+        record_count = write_json_array(
+            output_dir / "alldatasets.json",
+            transformed_records(),
+            on_record=lambda record: update_quality_counts(quality_counts, record, FIELDS),
+        )
         (output_dir / "quality_report.json").write_text(
-            json.dumps(build_quality_report(records, FIELDS), ensure_ascii=False, indent=2),
+            json.dumps(quality_counts, ensure_ascii=False, indent=2),
             encoding="utf-8",
         )
         (output_dir / "mapping_report.json").write_text(
             json.dumps({"fields": FIELDS, "source": "bronze records/*.json"}, ensure_ascii=False, indent=2),
             encoding="utf-8",
         )
-        print(f"saved {len(records)} metadata records to {output_dir}")
+        print(f"saved {record_count} metadata records to {output_dir}")
     finally:
         shutil.rmtree(snapshot_dir, ignore_errors=True)
 

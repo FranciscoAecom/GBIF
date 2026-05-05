@@ -10,6 +10,7 @@ import geopandas as gpd
 from shapely.geometry import Point
 
 from src.gbif.gold.shared import write_json
+from src.gbif.shared.json_stream import iter_json_array
 
 
 GOLD_DIR = Path("data/gbif/03_gold/threatened_species_brazil")
@@ -48,6 +49,11 @@ def is_valid_coordinate(record: dict) -> bool:
     return isinstance(lat, int | float) and isinstance(lon, int | float) and -90 <= lat <= 90 and -180 <= lon <= 180
 
 
+def write_batch(rows: list[dict], geometries: list[Point], append: bool) -> None:
+    gdf = gpd.GeoDataFrame(rows, geometry=geometries, crs="EPSG:4326")
+    gdf.to_file(GPKG_PATH, layer=LAYER_NAME, driver="GPKG", mode="a" if append else "w")
+
+
 def update_manifest(total_records: int, spatial_records: int) -> None:
     manifest_path = GOLD_DIR / "manifest.json"
     manifest = json.loads(manifest_path.read_text(encoding="utf-8")) if manifest_path.exists() else {}
@@ -62,29 +68,42 @@ def update_manifest(total_records: int, spatial_records: int) -> None:
 
 
 def build_geopackage(args: argparse.Namespace) -> None:
-    records = json.loads(OCCURRENCES_PATH.read_text(encoding="utf-8"))
-    spatial_records = [record for record in records if is_valid_coordinate(record)]
-
-    rows = []
-    geometries = []
-    for record in spatial_records:
-        rows.append({field: record.get(field) for field in GPKG_FIELDS})
-        geometries.append(Point(record["decimal_longitude"], record["decimal_latitude"]))
-
-    gdf = gpd.GeoDataFrame(rows, geometry=geometries, crs="EPSG:4326")
     if GPKG_PATH.exists() and args.overwrite:
         GPKG_PATH.unlink()
-    gdf.to_file(GPKG_PATH, layer=LAYER_NAME, driver="GPKG")
-    update_manifest(len(records), len(spatial_records))
-    print(f"saved {len(spatial_records)} features to {GPKG_PATH}")
+    rows = []
+    geometries = []
+    total_records = 0
+    spatial_records = 0
+    append = False
+
+    for record in iter_json_array(OCCURRENCES_PATH):
+        total_records += 1
+        if not is_valid_coordinate(record):
+            continue
+
+        rows.append({field: record.get(field) for field in GPKG_FIELDS})
+        geometries.append(Point(record["decimal_longitude"], record["decimal_latitude"]))
+        spatial_records += 1
+
+        if len(rows) >= args.batch_size:
+            write_batch(rows, geometries, append=append)
+            append = True
+            rows = []
+            geometries = []
+
+    if rows:
+        write_batch(rows, geometries, append=append)
+
+    update_manifest(total_records, spatial_records)
+    print(f"saved {spatial_records} features to {GPKG_PATH}")
 
 
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--overwrite", action="store_true", default=True)
+    parser.add_argument("--batch-size", type=int, default=50000)
     build_geopackage(parser.parse_args())
 
 
 if __name__ == "__main__":
     main()
-

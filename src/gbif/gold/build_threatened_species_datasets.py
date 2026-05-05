@@ -4,12 +4,11 @@ from __future__ import annotations
 
 import argparse
 import json
-import time
 from pathlib import Path
 
-import requests
-
 from src.gbif.gold.shared import write_json
+from src.gbif.shared.api_client import GbifApiClient
+from src.gbif.shared.json_stream import iter_json_array
 from src.gbif.shared.quality_checks import build_quality_report
 
 
@@ -36,13 +35,11 @@ DATASET_FIELDS = [
 ]
 
 
-def fetch_dataset_metadata(session: requests.Session, dataset_key: str, timeout: int) -> dict:
-    response = session.get(f"https://api.gbif.org/v1/dataset/{dataset_key}", timeout=timeout)
-    response.raise_for_status()
-    return response.json()
+def fetch_dataset_metadata(client: GbifApiClient, dataset_key: str) -> dict:
+    return client.get(f"dataset/{dataset_key}")
 
 
-def build_dataset_record(dataset_key: str, occurrences: list[dict], metadata: dict, snapshot_date: str) -> dict:
+def build_dataset_record(dataset_key: str, summary: dict, metadata: dict, snapshot_date: str) -> dict:
     citation = metadata.get("citation")
     if isinstance(citation, dict):
         citation = citation.get("text")
@@ -58,11 +55,11 @@ def build_dataset_record(dataset_key: str, occurrences: list[dict], metadata: di
         "homepage": metadata.get("homepage"),
         "citation": citation,
         "record_count_total": metadata.get("recordCount") or metadata.get("numOccurrences"),
-        "threatened_species_record_count": len(occurrences),
-        "threatened_species_count": len({record.get("species_id") for record in occurrences if record.get("species_id")}),
-        "source_occurrence_count": len(occurrences),
+        "threatened_species_record_count": summary["source_occurrence_count"],
+        "threatened_species_count": len(summary["species_ids"]),
+        "source_occurrence_count": summary["source_occurrence_count"],
         "snapshot_date": snapshot_date,
-        "bronze_file_path": None,
+        "bronze_file_path": summary.get("bronze_file_path"),
     }
 
 
@@ -77,30 +74,42 @@ def update_manifest(snapshot_date: str, record_count: int) -> None:
 
 
 def build_gold(args: argparse.Namespace) -> None:
-    occurrences = json.loads(OCCURRENCES_PATH.read_text(encoding="utf-8"))
-    snapshot_dates = sorted({record.get("snapshot_date") for record in occurrences if record.get("snapshot_date")})
-    snapshot_date = snapshot_dates[-1] if snapshot_dates else args.snapshot_date
-
-    occurrences_by_dataset: dict[str, list[dict]] = {}
-    for occurrence in occurrences:
+    snapshot_dates = set()
+    summaries_by_dataset: dict[str, dict] = {}
+    for occurrence in iter_json_array(OCCURRENCES_PATH):
+        if occurrence.get("snapshot_date"):
+            snapshot_dates.add(occurrence["snapshot_date"])
         dataset_key = occurrence.get("dataset_key")
         if not dataset_key:
             continue
-        occurrences_by_dataset.setdefault(dataset_key, []).append(occurrence)
+        summary = summaries_by_dataset.setdefault(
+            dataset_key,
+            {
+                "source_occurrence_count": 0,
+                "species_ids": set(),
+                "bronze_file_path": occurrence.get("bronze_file_path"),
+            },
+        )
+        summary["source_occurrence_count"] += 1
+        if occurrence.get("species_id"):
+            summary["species_ids"].add(occurrence["species_id"])
+        if not summary.get("bronze_file_path") and occurrence.get("bronze_file_path"):
+            summary["bronze_file_path"] = occurrence["bronze_file_path"]
 
-    session = requests.Session()
+    snapshot_date = sorted(snapshot_dates)[-1] if snapshot_dates else args.snapshot_date
+
+    client = GbifApiClient(timeout=args.timeout, sleep_seconds=args.sleep_seconds)
     dataset_records = []
     failures = []
-    for index, (dataset_key, dataset_occurrences) in enumerate(sorted(occurrences_by_dataset.items()), start=1):
+    for index, (dataset_key, summary) in enumerate(sorted(summaries_by_dataset.items()), start=1):
         try:
-            metadata = fetch_dataset_metadata(session, dataset_key, args.timeout)
-            dataset_records.append(build_dataset_record(dataset_key, dataset_occurrences, metadata, snapshot_date))
-            print(f"{index}/{len(occurrences_by_dataset)} dataset={dataset_key} records={len(dataset_occurrences)}")
+            metadata = fetch_dataset_metadata(client, dataset_key)
+            dataset_records.append(build_dataset_record(dataset_key, summary, metadata, snapshot_date))
+            print(f"{index}/{len(summaries_by_dataset)} dataset={dataset_key} records={summary['source_occurrence_count']}")
         except Exception as exc:
             failures.append({"dataset_key": dataset_key, "error": str(exc)})
-            dataset_records.append(build_dataset_record(dataset_key, dataset_occurrences, {}, snapshot_date))
-            print(f"{index}/{len(occurrences_by_dataset)} failed dataset={dataset_key}: {exc}")
-        time.sleep(args.sleep_seconds)
+            dataset_records.append(build_dataset_record(dataset_key, summary, {}, snapshot_date))
+            print(f"{index}/{len(summaries_by_dataset)} failed dataset={dataset_key}: {exc}")
 
     write_json(DATASETS_PATH, dataset_records)
     quality_report = build_quality_report(dataset_records, DATASET_FIELDS)
@@ -120,4 +129,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-

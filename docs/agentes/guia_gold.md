@@ -21,12 +21,13 @@ O foco analitico do projeto e montar uma base de especies ameacadas no Brasil:
 data/gbif/03_gold/threatened_species_brazil/
 ```
 
-Esse produto nao precisa espelhar uma unica classe GBIF. Ele deve combinar dados das camadas `silver` relevantes, principalmente:
+Esse produto nao precisa espelhar uma unica classe GBIF. Ele deve combinar dados GBIF, referencia MMA e metadados relevantes, principalmente:
 
 - `silver/checklist`, para taxonomia e nomes
 - `silver/occurrence`, para ocorrencias no Brasil
 - `silver/metadata`, para datasets de origem
 - `silver/sampling_event`, opcionalmente, para enriquecer ocorrencias com metodo, protocolo e esforco de amostragem quando disponivel
+- ZIP DWCA oficial no `bronze/occurrence`, quando as ocorrencias forem baixadas via Download API assincrona
 
 Tambem deve cruzar essas bases com uma referencia oficial de especies ameacadas no Brasil.
 
@@ -80,11 +81,12 @@ O metodo de construcao desse produto tambem esta documentado nesse arquivo, incl
 
 ## Regras
 
-- A `gold` deve nascer da `silver`.
-- Nao deve consultar o `bronze` diretamente.
+- Produtos por classe devem nascer da `silver`.
+- Produtos analiticos especiais, como `threatened_species_brazil`, podem usar o ZIP oficial no `bronze` quando isso preservar melhor o pacote original baixado do GBIF.
 - Deve produzir o arquivo de dados final, `schema.json`, `quality_report.json` e `manifest.json`.
 - Deve fazer backup antes de sobrescrever bases existentes.
 - Quando o produto tiver componente espacial, como `threatened_species_brazil`, deve produzir tambem `.gpkg` com CRS `EPSG:4326`.
+- Para bases grandes de ocorrencias, os builders devem ler/escrever em streaming ou em lotes, evitando carregar todas as ocorrencias em memoria.
 
 ## Manifesto
 

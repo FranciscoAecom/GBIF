@@ -2,11 +2,14 @@
 
 ## Escopo
 
-O projeto trabalha com dados publicos disponibilizados pelo GBIF por meio da API oficial.
+O projeto trabalha com dados publicos disponibilizados pelo GBIF por meio das APIs oficiais.
+
+Para consultas pequenas, diagnosticos e metadados, pode usar endpoints publicos.
+Para volumes grandes de ocorrencias, deve usar a Download API assincrona do GBIF com conta.
 
 ## Camadas
 
-- `bronze`: resposta bruta da API, versionada por snapshot.
+- `bronze`: dado bruto recebido do GBIF, seja resposta de API ou ZIP oficial de download assincrono, versionado por snapshot.
 - `silver`: estrutura canonica por classe GBIF.
 - `gold`: produtos analiticos consolidados, incluindo a futura base de especies ameacadas no Brasil.
 
@@ -25,11 +28,19 @@ O produto analitico prioritario definido para a camada `gold` e uma base de espe
 data/gbif/03_gold/threatened_species_brazil/
 ```
 
-Essa base deve cruzar dados GBIF com uma referencia oficial brasileira de especies ameacadas.
+Essa base deve cruzar dados GBIF com uma referencia brasileira de especies ameacadas.
 
 Fonte principal:
 
 - MMA / Lista Nacional Oficial de Especies Ameacadas
+
+Referencia operacional da primeira versao:
+
+- MMA Dados Abertos 2021, arquivos CSV de fauna e flora
+
+Validacao normativa futura:
+
+- Portarias MMA vigentes e atualizacoes posteriores
 
 Fontes tecnicas de apoio:
 

@@ -5,9 +5,10 @@ from __future__ import annotations
 import argparse
 import csv
 import io
-import json
 import re
 from pathlib import Path
+
+from src.gbif.shared.json_stream import write_json_array
 
 
 REFERENCE_DIR = Path("data/gbif/00_reference/threatened_species_brazil")
@@ -18,11 +19,11 @@ OUTPUT_PATH = REFERENCE_DIR / "threatened_species_brazil_reference.json"
 STATUS_CODE_PATTERN = re.compile(r"\(([^()]+)\)")
 
 
-def read_csv(path: Path) -> list[dict]:
+def iter_csv(path: Path):
     content = path.read_bytes()
     text = content.decode("utf-8-sig", errors="replace")
     dialect = csv.Sniffer().sniff(text[:4096], delimiters=",;\t")
-    return list(csv.DictReader(io.StringIO(text), dialect=dialect))
+    yield from csv.DictReader(io.StringIO(text), dialect=dialect)
 
 
 def clean_text(value) -> str | None:
@@ -106,27 +107,27 @@ def normalize_row(path: Path, row: dict) -> dict | None:
 
 def build_reference(args: argparse.Namespace) -> None:
     included_status_codes = set(args.include_status_codes.split(",")) if args.include_status_codes else None
-    records = []
-    for path in sorted(RAW_DIR.glob("*.csv")):
-        if args.only and args.only.lower() not in path.name.lower():
-            continue
-        for row in read_csv(path):
-            normalized = normalize_row(path, row)
-            if normalized and (included_status_codes is None or normalized["threat_status_br_code"] in included_status_codes):
-                records.append(normalized)
-
     seen = set()
-    deduped = []
-    for record in records:
-        key = (record["scientific_name"], record["taxonomic_group"], record["threat_status_br_code"])
-        if key in seen:
-            continue
-        seen.add(key)
-        deduped.append(record)
+
+    def normalized_records():
+        for path in sorted(RAW_DIR.glob("*.csv")):
+            if args.only and args.only.lower() not in path.name.lower():
+                continue
+            for row in iter_csv(path):
+                normalized = normalize_row(path, row)
+                if not normalized:
+                    continue
+                if included_status_codes is not None and normalized["threat_status_br_code"] not in included_status_codes:
+                    continue
+                key = (normalized["scientific_name"], normalized["taxonomic_group"], normalized["threat_status_br_code"])
+                if key in seen:
+                    continue
+                seen.add(key)
+                yield normalized
 
     OUTPUT_PATH.parent.mkdir(parents=True, exist_ok=True)
-    OUTPUT_PATH.write_text(json.dumps(deduped, ensure_ascii=False, indent=2), encoding="utf-8")
-    print(f"saved {len(deduped)} threatened-species reference records to {OUTPUT_PATH}")
+    record_count = write_json_array(OUTPUT_PATH, normalized_records())
+    print(f"saved {record_count} threatened-species reference records to {OUTPUT_PATH}")
 
 
 def main() -> None:
