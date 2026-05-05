@@ -42,14 +42,41 @@ class GbifApiClient:
         time.sleep(self.sleep_seconds)
         return response.text.strip().strip('"')
 
-    def download_file(self, url: str, output_path: Path) -> Path:
+    def download_file(self, url: str, output_path: Path, max_attempts: int = 5) -> Path:
         output_path.parent.mkdir(parents=True, exist_ok=True)
-        with self.session.get(url, stream=True, timeout=self.timeout) as response:
-            response.raise_for_status()
-            with output_path.open("wb") as file:
-                for chunk in response.iter_content(chunk_size=1024 * 1024):
-                    if chunk:
-                        file.write(chunk)
+        partial_path = output_path.with_suffix(output_path.suffix + ".part")
+
+        if output_path.exists() and not partial_path.exists():
+            output_path.replace(partial_path)
+
+        for attempt in range(1, max_attempts + 1):
+            downloaded_bytes = partial_path.stat().st_size if partial_path.exists() else 0
+            headers = {"Range": f"bytes={downloaded_bytes}-"} if downloaded_bytes else {}
+            mode = "ab" if downloaded_bytes else "wb"
+
+            try:
+                with self.session.get(url, stream=True, timeout=self.timeout, headers=headers) as response:
+                    if response.status_code == 416 and partial_path.exists():
+                        partial_path.replace(output_path)
+                        return output_path
+                    if response.status_code == 200 and downloaded_bytes:
+                        mode = "wb"
+                    elif response.status_code not in {200, 206}:
+                        response.raise_for_status()
+
+                    with partial_path.open(mode) as file:
+                        for chunk in response.iter_content(chunk_size=1024 * 1024):
+                            if chunk:
+                                file.write(chunk)
+
+                partial_path.replace(output_path)
+                time.sleep(self.sleep_seconds)
+                return output_path
+            except requests.RequestException:
+                if attempt == max_attempts:
+                    raise
+                time.sleep(max(self.sleep_seconds, 1.0) * attempt)
+
         time.sleep(self.sleep_seconds)
         return output_path
 

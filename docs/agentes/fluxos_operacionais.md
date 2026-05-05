@@ -158,5 +158,19 @@ data/gbif/01_bronze/occurrence/YYYYMMDD/downloads/<download_key>.zip
 data/gbif/01_bronze/occurrence/YYYYMMDD/downloads/<download_key>_download_manifest.json
 ```
 
+Se a conexao cair durante o download, executar o mesmo comando novamente.
+O pipeline tenta retomar o arquivo parcial:
+
+- preserva o progresso em `.zip.part`
+- usa HTTP `Range` quando o servidor permite
+- tenta ate 5 vezes por padrao
+- ao concluir, renomeia o parcial para `.zip`
+
+Para alterar o numero de tentativas:
+
+```powershell
+uv run python -m src.gbif.occurrence.bronze.async_threatened_occurrence_download download --date YYYYMMDD --download-key <download_key> --max-attempts 10
+```
+
 Depois do ZIP no bronze, o produto `threatened_species_brazil` gera `occurrences.json` diretamente a partir do `occurrence.txt` do DWCA oficial.
 Os passos seguintes leem `occurrences.json` de forma incremental para gerar `datasets.json` e o GeoPackage.

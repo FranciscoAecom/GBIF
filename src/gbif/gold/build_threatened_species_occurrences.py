@@ -6,6 +6,7 @@ import argparse
 import csv
 import io
 import json
+import sys
 from pathlib import Path
 from zipfile import ZipFile
 
@@ -21,6 +22,7 @@ REFERENCE_PATH = Path(
     "data/gbif/00_reference/threatened_species_brazil/threatened_species_brazil_reference_gbif_matched.json"
 )
 GOLD_DIR = Path("data/gbif/03_gold/threatened_species_brazil")
+CSV_FIELD_SIZE_LIMIT = sys.maxsize
 
 OCCURRENCE_FIELDS = [
     "record_id",
@@ -127,6 +129,7 @@ def occurrence_member_name(archive: ZipFile) -> str:
 
 
 def iter_dwca_occurrences(archive_path: Path):
+    csv.field_size_limit(CSV_FIELD_SIZE_LIMIT)
     with ZipFile(archive_path) as archive:
         member_name = occurrence_member_name(archive)
         with archive.open(member_name) as member:

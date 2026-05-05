@@ -1,0 +1,17 @@
+{
+  "created_at": "2026-05-05T14:53:16.396138+00:00",
+  "status": "SUBMITTED",
+  "source_reference": "data\\gbif\\00_reference\\threatened_species_brazil\\threatened_species_brazil_reference_gbif_matched.json",
+  "request_file": "C:\\Temp\\Repositórios\\GBIF\\data\\gbif\\01_bronze\\occurrence\\20260505\\download_requests\\threatened_species_occurrence_download_request.json",
+  "gbif_endpoint": "https://api.gbif.org/v1/occurrence/download/request",
+  "format": "DWCA",
+  "country": "BR",
+  "taxon_key_count": 4595,
+  "include_absent": false,
+  "has_coordinate": null,
+  "credential_source": "environment variables GBIF_USERNAME, GBIF_PASSWORD, GBIF_EMAIL",
+  "submitted_at": "2026-05-05T14:53:21.796855+00:00",
+  "download_key": "0010024-260430073515954",
+  "status_endpoint": "https://api.gbif.org/v1/occurrence/download/0010024-260430073515954",
+  "download_url": "https://api.gbif.org/occurrence/download/request/0010024-260430073515954.zip"
+}

@@ -185,7 +185,7 @@ def download(args: argparse.Namespace) -> Path:
 
     output_path = downloaded_dir(args.date) / f"{args.download_key}.zip"
     source_url = info.get("downloadLink") or download_file_url(args.download_key)
-    client.download_file(source_url, output_path)
+    client.download_file(source_url, output_path, max_attempts=args.max_attempts)
     write_json(
         downloaded_dir(args.date) / f"{args.download_key}_download_manifest.json",
         {
@@ -234,6 +234,7 @@ def build_parser() -> argparse.ArgumentParser:
     download_parser.add_argument("--download-key", required=True)
     download_parser.add_argument("--timeout", type=int, default=300)
     download_parser.add_argument("--sleep-seconds", type=float, default=0.25)
+    download_parser.add_argument("--max-attempts", type=int, default=5)
     download_parser.set_defaults(func=download)
 
     return parser

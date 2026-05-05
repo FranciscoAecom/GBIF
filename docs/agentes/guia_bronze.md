@@ -43,3 +43,25 @@ data/gbif/01_bronze/<classe>/YYYYMMDD/
 
 Para `occurrence` via API paginada, o extrator deve ser usado apenas em consultas pequenas ou diagnosticos.
 Ele grava registros incrementalmente em `records/`, mas tambem preserva a resposta completa de cada pagina em `pages/`.
+
+## Retomada de Downloads Grandes
+
+Downloads assincronos do GBIF podem gerar arquivos ZIP grandes.
+Se a conexao cair durante o download, o pipeline tenta preservar o progresso local.
+
+Regra implementada:
+
+- se ja existir um ZIP parcial, o arquivo e renomeado para `.zip.part`
+- o proximo download tenta continuar a partir do ponto onde parou usando HTTP `Range`
+- por padrao, o pipeline faz ate 5 tentativas
+- se o download completar, o arquivo `.zip.part` e renomeado de volta para `.zip`
+- se a retomada nao for aceita pelo servidor, o download pode recomecar do zero automaticamente
+
+Exemplo:
+
+```text
+0010024-260430073515954.zip      -> arquivo final esperado
+0010024-260430073515954.zip.part -> arquivo parcial durante retomada
+```
+
+Antes de processar o ZIP para `silver` ou `gold`, validar a integridade do arquivo.
