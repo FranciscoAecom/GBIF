@@ -51,10 +51,11 @@ Fluxo metodologico:
 
 3. Ocorrencias
    - Buscar no GBIF `occurrence` registros dessas especies no Brasil.
+   - Na primeira versao operacional, considerar apenas registros com `OCCURRENCE_STATUS = PRESENT`.
    - Preservar localidade, data, coordenadas, dataset de origem e licenca.
    - Manter ocorrencias sem coordenada em `occurrences.json`, mesmo que elas nao entrem no GeoPackage.
-   - Script inicial sem conta: `src.gbif.occurrence.bronze.extract_threatened_occurrences`.
-   - Para carga grande, usar Download API assincrona do GBIF quando houver conta.
+   - Para carga operacional, usar Download API assincrona do GBIF com conta.
+   - Script previsto: `src.gbif.occurrence.bronze.async_threatened_occurrence_download`.
 
 4. Metadados
    - Identificar em `metadata` os datasets GBIF que forneceram esses registros.
@@ -67,6 +68,38 @@ Fluxo metodologico:
 6. Gold
    - Gerar a base final em `data/gbif/03_gold/threatened_species_brazil/`.
    - Produzir arquivos relacionais JSON, saida espacial GeoPackage e artefatos de controle.
+
+## Regra de Presenca e Ausencia
+
+Na primeira versao da base, o download de ocorrencias deve usar:
+
+```text
+OCCURRENCE_STATUS = PRESENT
+```
+
+Isso significa que a base deve trazer apenas registros em que a especie foi registrada como presente no local.
+
+Em linguagem simples:
+
+```text
+PRESENT = alguem encontrou, observou, coletou ou registrou a especie ali.
+```
+
+O valor oposto seria `ABSENT`:
+
+```text
+ABSENT = houve uma busca ou amostragem, mas a especie nao foi encontrada.
+```
+
+Essa decisao foi tomada porque o objetivo inicial da gold e mapear e organizar registros de presenca de especies ameacadas no Brasil.
+Registros de ausencia podem ser uteis para estudos especificos de amostragem, modelagem ou esforco de busca, mas podem confundir a leitura inicial se forem misturados com presencas.
+
+Portanto:
+
+- a gold inicial deve representar onde ha registros de presenca das especies ameacadas
+- registros `ABSENT` nao entram por padrao
+- se no futuro houver uma analise especifica de ausencia ou esforco amostral, o pipeline pode gerar um recorte separado incluindo `ABSENT`
+- no script de download assincrono, isso pode ser feito com a opcao `--include-absent`
 
 Papel de cada classe GBIF, em linguagem simples:
 

@@ -106,10 +106,10 @@ Exemplo conceitual:
 {
   "product": "occurrence",
   "source_class": "occurrence",
-  "source_silver_snapshot": "20260504",
-  "source_silver_file": "data/gbif/02_silver/occurrence/20260504/allrecords.json",
-  "source_bronze_bundle": "data/gbif/01_bronze/occurrence/20260504_core.zip",
-  "generated_at": "2026-05-04T11:30:00",
-  "record_count": 2
+  "source_silver_snapshot": "YYYYMMDD",
+  "source_silver_file": "data/gbif/02_silver/occurrence/YYYYMMDD/allrecords.json",
+  "source_bronze_bundle": "data/gbif/01_bronze/occurrence/YYYYMMDD_core.zip",
+  "generated_at": "YYYY-MM-DDTHH:MM:SS",
+  "record_count": 0
 }
 ```

@@ -1,4 +1,4 @@
-"""Build threatened species occurrence gold records from the occurrence bronze pilot/extraction."""
+"""Build threatened species occurrence gold records from occurrence bronze data."""
 
 from __future__ import annotations
 
@@ -139,4 +139,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import time
+from pathlib import Path
 from typing import Any
 
 import requests
@@ -25,6 +26,32 @@ class GbifApiClient:
         response.raise_for_status()
         time.sleep(self.sleep_seconds)
         return response.json()
+
+    def post(
+        self,
+        path: str,
+        payload: dict[str, Any],
+        auth: tuple[str, str] | None = None,
+    ) -> str:
+        url = f"{self.base_url}/{path.lstrip('/')}"
+        response = self.session.post(url, json=payload, auth=auth, timeout=self.timeout)
+        if response.status_code == 429:
+            time.sleep(max(self.sleep_seconds, 2.0))
+            response = self.session.post(url, json=payload, auth=auth, timeout=self.timeout)
+        response.raise_for_status()
+        time.sleep(self.sleep_seconds)
+        return response.text.strip().strip('"')
+
+    def download_file(self, url: str, output_path: Path) -> Path:
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+        with self.session.get(url, stream=True, timeout=self.timeout) as response:
+            response.raise_for_status()
+            with output_path.open("wb") as file:
+                for chunk in response.iter_content(chunk_size=1024 * 1024):
+                    if chunk:
+                        file.write(chunk)
+        time.sleep(self.sleep_seconds)
+        return output_path
 
     def paged_search(
         self,
@@ -54,4 +81,3 @@ class GbifApiClient:
             if page.get("endOfRecords") or not results:
                 break
             offset += len(results)
-
