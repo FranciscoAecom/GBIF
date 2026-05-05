@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from uuid import UUID
+
 
 MISSING_VALUES = {"", " ", "null", "none", "nan", "n/a", "na", "-"}
 
@@ -39,3 +41,12 @@ def first_present(*values):
         return value
     return None
 
+
+def clean_uuid(value):
+    text = clean_text(value)
+    if text is None:
+        return None
+    try:
+        return str(UUID(text))
+    except ValueError:
+        return None

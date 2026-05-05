@@ -9,6 +9,7 @@ from pathlib import Path
 from src.gbif.gold.shared import write_json
 from src.gbif.shared.api_client import GbifApiClient
 from src.gbif.shared.json_stream import iter_json_array
+from src.gbif.shared.normalize import clean_uuid
 from src.gbif.shared.quality_checks import build_quality_report
 
 
@@ -76,11 +77,15 @@ def update_manifest(snapshot_date: str, record_count: int) -> None:
 def build_gold(args: argparse.Namespace) -> None:
     snapshot_dates = set()
     summaries_by_dataset: dict[str, dict] = {}
+    invalid_dataset_keys: dict[str, int] = {}
     for occurrence in iter_json_array(OCCURRENCES_PATH):
         if occurrence.get("snapshot_date"):
             snapshot_dates.add(occurrence["snapshot_date"])
-        dataset_key = occurrence.get("dataset_key")
+        raw_dataset_key = occurrence.get("dataset_key")
+        dataset_key = clean_uuid(raw_dataset_key)
         if not dataset_key:
+            if raw_dataset_key:
+                invalid_dataset_keys[raw_dataset_key] = invalid_dataset_keys.get(raw_dataset_key, 0) + 1
             continue
         summary = summaries_by_dataset.setdefault(
             dataset_key,
@@ -114,6 +119,10 @@ def build_gold(args: argparse.Namespace) -> None:
     write_json(DATASETS_PATH, dataset_records)
     quality_report = build_quality_report(dataset_records, DATASET_FIELDS)
     quality_report["metadata_fetch_failures"] = failures
+    quality_report["invalid_dataset_keys"] = [
+        {"dataset_key": key, "occurrence_count": count}
+        for key, count in sorted(invalid_dataset_keys.items())
+    ]
     write_json(GOLD_DIR / "datasets_quality_report.json", quality_report)
     update_manifest(snapshot_date, len(dataset_records))
     print(f"saved {len(dataset_records)} threatened species dataset records to {DATASETS_PATH}")

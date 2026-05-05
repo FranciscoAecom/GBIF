@@ -13,7 +13,7 @@ from zipfile import ZipFile
 from src.gbif.gold.shared import write_json
 from src.gbif.shared.dates import snapshot_date_iso
 from src.gbif.shared.json_stream import write_json_array
-from src.gbif.shared.normalize import clean_text, first_present
+from src.gbif.shared.normalize import clean_text, clean_uuid, first_present
 from src.gbif.shared.paths import bronze_snapshot_dir
 from src.gbif.shared.quality_checks import empty_quality_counts, update_quality_counts
 
@@ -157,7 +157,7 @@ def transform_occurrence(row: dict, archive_path: Path, species_by_taxon_key: di
         "species_id": species.get("species_id"),
         "scientific_name": clean_text(first_row_value(row, "scientificName") or species.get("scientific_name")),
         "taxon_key": parse_int(first_row_value(row, "taxonKey")) or species.get("taxon_key"),
-        "dataset_key": clean_text(first_row_value(row, "datasetKey")),
+        "dataset_key": clean_uuid(first_row_value(row, "datasetKey")),
         "basis_of_record": clean_text(first_row_value(row, "basisOfRecord")),
         "occurrence_status": clean_text(first_row_value(row, "occurrenceStatus")),
         "event_date": clean_text(first_row_value(row, "eventDate")),
