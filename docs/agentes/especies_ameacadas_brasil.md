@@ -68,20 +68,98 @@ Fluxo metodologico:
    - Gerar a base final em `data/gbif/03_gold/threatened_species_brazil/`.
    - Produzir arquivos relacionais JSON, saida espacial GeoPackage e artefatos de controle.
 
-Papel de cada classe GBIF:
+Papel de cada classe GBIF, em linguagem simples:
+
+### `checklist`
+
+O `checklist` e a parte do GBIF que ajuda a entender nomes cientificos e taxonomia.
+
+Na pratica, ele funciona como uma lista de nomes aceitos, sinonimos e classificacao biologica.
+Isso e importante porque uma mesma especie pode aparecer escrita de formas diferentes em fontes diferentes.
+
+No projeto, usamos o `checklist` para responder perguntas como:
+
+- o nome cientifico da lista MMA existe no GBIF?
+- esse nome ainda e aceito ou virou sinonimo de outro nome?
+- qual e o `taxon_key` GBIF que identifica essa especie?
+- qual e a classificacao da especie, como reino, filo, classe, ordem, familia e genero?
+
+Exemplo:
 
 ```text
-checklist
-= ajuda a reconciliar nomes e taxonomia
+A lista MMA informa uma especie pelo nome cientifico.
+O checklist ajuda a confirmar qual e o nome aceito no GBIF
+e qual chave taxonomica deve ser usada nas buscas.
+```
 
-occurrence
-= traz os registros das especies no Brasil
+### `occurrence`
 
-metadata
-= descreve os datasets de origem
+O `occurrence` e a parte do GBIF que traz os registros de ocorrencia.
 
-sampling_event
-= enriquece ocorrencias com metodo e esforco, quando existir
+Em linguagem simples, uma ocorrencia significa:
+
+```text
+alguem registrou que uma especie apareceu em determinado lugar,
+em determinada data, a partir de uma observacao, coleta, museu,
+herbario ou outro tipo de fonte.
+```
+
+No projeto, usamos `occurrence` para encontrar os registros das especies ameacadas dentro do Brasil.
+Esses registros alimentam o arquivo `occurrences.json` e, quando possuem coordenadas validas, tambem entram no GeoPackage para visualizacao em mapa.
+
+O `occurrence` ajuda a responder perguntas como:
+
+- onde existem registros dessa especie no Brasil?
+- quando a especie foi registrada?
+- o registro tem coordenada geografica?
+- qual dataset forneceu esse registro?
+- ha algum alerta de qualidade geoespacial?
+
+### `metadata`
+
+O `metadata` descreve a origem dos dados.
+
+Ele nao e o registro da especie em si. Ele explica de onde vieram os registros, quem publicou, qual e a licenca de uso e como citar a fonte.
+
+No projeto, usamos `metadata` para montar o arquivo `datasets.json`, que documenta os datasets GBIF que forneceram ocorrencias para as especies ameacadas.
+
+O `metadata` ajuda a responder perguntas como:
+
+- qual instituicao publicou os dados?
+- qual e o titulo do dataset?
+- qual e a licenca de uso?
+- existe DOI ou citacao recomendada?
+- quantas ocorrencias usadas vieram desse dataset?
+
+Exemplo:
+
+```text
+Uma ocorrencia diz: "esta especie foi registrada neste local".
+O metadata diz: "esse registro veio deste dataset,
+publicado por esta instituicao, sob esta licenca".
+```
+
+### `sampling_event`
+
+O `sampling_event` descreve o contexto de uma amostragem.
+
+Ele aparece quando o dado nao e apenas um registro isolado, mas faz parte de uma atividade de coleta com metodo, protocolo ou esforco amostral.
+
+No projeto, o `sampling_event` e tratado como enriquecimento opcional. Isso significa que ele melhora a qualidade analitica quando estiver disponivel, mas a primeira versao da base nao depende dele para existir.
+
+O `sampling_event` ajuda a responder perguntas como:
+
+- qual metodo foi usado para coletar ou observar a especie?
+- houve armadilha, transecto, rede, parcela, mergulho ou outro protocolo?
+- qual foi o esforco de amostragem?
+- a ocorrencia faz parte de uma campanha de campo ou evento de coleta?
+
+Exemplo:
+
+```text
+Occurrence diz que uma especie foi encontrada.
+Sampling event pode explicar como ela foi encontrada,
+por exemplo: 10 armadilhas instaladas por 5 noites.
 ```
 
 Saida final esperada:
