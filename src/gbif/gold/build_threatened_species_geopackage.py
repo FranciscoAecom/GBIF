@@ -10,6 +10,7 @@ import geopandas as gpd
 from shapely.geometry import Point
 
 from src.gbif.gold.shared import write_json
+from src.gbif.shared.coordinate_normalization import BRAZIL_BBOX
 from src.gbif.shared.json_stream import iter_json_array
 
 
@@ -30,12 +31,19 @@ GPKG_FIELDS = [
     "basis_of_record",
     "occurrence_status",
     "event_date",
+    "acm_event_date",
+    "acm_event_date_precision",
     "country_code",
     "state_province",
     "municipality",
     "locality",
     "decimal_latitude",
     "decimal_longitude",
+    "acm_decimal_latitude",
+    "acm_decimal_longitude",
+    "acm_coordinate_was_swapped",
+    "acm_coordinate_status",
+    "acm_coordinate_issue",
     "coordinate_uncertainty_in_meters",
     "has_geospatial_issue",
     "license",
@@ -44,9 +52,11 @@ GPKG_FIELDS = [
 
 
 def is_valid_coordinate(record: dict) -> bool:
-    lat = record.get("decimal_latitude")
-    lon = record.get("decimal_longitude")
-    return isinstance(lat, int | float) and isinstance(lon, int | float) and -90 <= lat <= 90 and -180 <= lon <= 180
+    lat = record.get("acm_decimal_latitude")
+    lon = record.get("acm_decimal_longitude")
+    if not isinstance(lat, int | float) or not isinstance(lon, int | float):
+        return False
+    return record.get("acm_coordinate_status") in {"VALID_ORIGINAL", "POSSIBLE_SWAPPED"}
 
 
 def write_batch(rows: list[dict], geometries: list[Point], append: bool) -> None:
@@ -61,6 +71,11 @@ def update_manifest(total_records: int, spatial_records: int) -> None:
     manifest["outputs"]["geopackage"] = str(GPKG_PATH)
     manifest["geopackage_layer"] = LAYER_NAME
     manifest["geopackage_crs"] = "EPSG:4326"
+    manifest["geopackage_coordinate_filters"] = {
+        "valid_lat_lon": True,
+        "exclude_gbif_geospatial_issues": True,
+        "brazil_approximate_bbox": BRAZIL_BBOX,
+    }
     manifest["geopackage_source"] = str(OCCURRENCES_PATH)
     manifest["geopackage_source_record_count"] = total_records
     manifest["geopackage_feature_count"] = spatial_records
@@ -82,7 +97,7 @@ def build_geopackage(args: argparse.Namespace) -> None:
             continue
 
         rows.append({field: record.get(field) for field in GPKG_FIELDS})
-        geometries.append(Point(record["decimal_longitude"], record["decimal_latitude"]))
+        geometries.append(Point(record["acm_decimal_longitude"], record["acm_decimal_latitude"]))
         spatial_records += 1
 
         if len(rows) >= args.batch_size:

@@ -19,6 +19,8 @@ REFERENCE_PATH = Path(
 REQUEST_ENDPOINT = "occurrence/download/request"
 DOWNLOAD_ENDPOINT = "occurrence/download"
 DOWNLOAD_FILE_BASE_URL = "https://api.gbif.org/occurrence/download/request"
+ALLOWED_REFERENCE_RANKS = {"SPECIES", "SUBSPECIES", "VARIETY"}
+EXCLUDED_MATCH_STATUSES = {"HIGHERRANK", "NONE"}
 
 
 def write_json(path: Path, payload: dict[str, Any]) -> None:
@@ -69,6 +71,10 @@ def unique_taxon_keys(species_limit: int | None = None) -> list[int]:
     taxon_keys: list[int] = []
     seen: set[int] = set()
     for record in records:
+        if record.get("taxon_rank") not in ALLOWED_REFERENCE_RANKS:
+            continue
+        if record.get("gbif_checklist_match_status") in EXCLUDED_MATCH_STATUSES:
+            continue
         taxon_key = record.get("accepted_taxon_key") or record.get("taxon_key")
         if not taxon_key or taxon_key in seen:
             continue

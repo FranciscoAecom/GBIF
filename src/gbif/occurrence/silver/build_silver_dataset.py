@@ -7,6 +7,8 @@ import json
 import shutil
 
 from src.gbif.shared.archive_data import unpack_snapshot
+from src.gbif.shared.coordinate_normalization import normalize_brazil_coordinate
+from src.gbif.shared.date_normalization import normalize_event_date
 from src.gbif.shared.dates import snapshot_date_iso
 from src.gbif.shared.json_stream import write_json_array
 from src.gbif.shared.normalize import clean_list, clean_text
@@ -31,6 +33,9 @@ FIELDS = [
     "genus",
     "species",
     "event_date",
+    "acm_event_date",
+    "acm_event_date_precision",
+    "acm_event_date_issue",
     "year",
     "month",
     "day",
@@ -43,6 +48,11 @@ FIELDS = [
     "coordinate_uncertainty_in_meters",
     "has_coordinate",
     "has_geospatial_issue",
+    "acm_decimal_latitude",
+    "acm_decimal_longitude",
+    "acm_coordinate_was_swapped",
+    "acm_coordinate_status",
+    "acm_coordinate_issue",
     "recorded_by",
     "identified_by",
     "license",
@@ -53,6 +63,14 @@ FIELDS = [
 
 
 def transform_record(raw: dict, bronze_file_path: str, snapshot_date: str) -> dict:
+    event_date = clean_text(raw.get("eventDate"))
+    normalized_event_date = normalize_event_date(event_date)
+    has_geospatial_issue = raw.get("hasGeospatialIssues") or raw.get("hasGeospatialIssue")
+    normalized_coordinate = normalize_brazil_coordinate(
+        raw.get("decimalLatitude"),
+        raw.get("decimalLongitude"),
+        has_geospatial_issue=has_geospatial_issue,
+    )
     return {
         "gbif_id": raw.get("key"),
         "dataset_key": clean_text(raw.get("datasetKey")),
@@ -69,7 +87,8 @@ def transform_record(raw: dict, bronze_file_path: str, snapshot_date: str) -> di
         "family": clean_text(raw.get("family")),
         "genus": clean_text(raw.get("genus")),
         "species": clean_text(raw.get("species")),
-        "event_date": clean_text(raw.get("eventDate")),
+        "event_date": event_date,
+        **normalized_event_date,
         "year": raw.get("year"),
         "month": raw.get("month"),
         "day": raw.get("day"),
@@ -81,7 +100,8 @@ def transform_record(raw: dict, bronze_file_path: str, snapshot_date: str) -> di
         "decimal_longitude": raw.get("decimalLongitude"),
         "coordinate_uncertainty_in_meters": raw.get("coordinateUncertaintyInMeters"),
         "has_coordinate": raw.get("hasCoordinate"),
-        "has_geospatial_issue": raw.get("hasGeospatialIssue"),
+        "has_geospatial_issue": has_geospatial_issue,
+        **normalized_coordinate,
         "recorded_by": clean_list(raw.get("recordedBy")),
         "identified_by": clean_list(raw.get("identifiedBy")),
         "license": clean_text(raw.get("license")),

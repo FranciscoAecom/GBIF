@@ -52,9 +52,10 @@ Observacoes:
 - `reconcile_gbif_taxonomy` usa a API publica `species/match` do GBIF para obter `taxonKey` e nome aceito.
 - `apply_gbif_taxonomy_matches` gera `threatened_species_brazil_reference_gbif_matched.json` com os campos taxonomicos preenchidos.
 - `async_threatened_occurrence_download` usa a Download API assincrona do GBIF para volumes grandes.
-- O pedido completo usa todos os `TAXON_KEY` reconciliados entre MMA e GBIF.
+- O pedido completo usa os `TAXON_KEY` reconciliados entre MMA e GBIF apenas quando o match representa taxon de especie, subespecie ou variedade.
+- Matches amplos como `HIGHERRANK` ou `NONE` nao entram no pedido padrao, porque podem trazer descendentes demais e incluir registros que nao correspondem diretamente a especies ameacadas da lista MMA.
 - Limites opcionais devem ficar restritos a testes controlados ou diagnosticos tecnicos.
-- `build_threatened_species_occurrences` gera `occurrences.json` lendo o `occurrence.txt` dentro do ZIP DWCA oficial baixado do GBIF.
+- `build_threatened_species_occurrences` gera `occurrences.json` lendo o `occurrence.txt` dentro do ZIP DWCA oficial baixado do GBIF e mantem apenas ocorrencias ligadas a um `species_id` da referencia MMA.
 - `build_threatened_species_datasets` gera `datasets.json` a partir dos `dataset_key` observados nas ocorrencias e metadados publicos do GBIF, lendo `occurrences.json` em streaming.
 - `build_threatened_species_geopackage` gera `threatened_species_occurrences.gpkg` com ocorrencias georreferenciadas em `EPSG:4326`, gravando em lotes para suportar volumes grandes.
 - Para carga grande de ocorrencias, usar a Download API assincrona.
@@ -100,9 +101,13 @@ data/gbif/01_bronze/occurrence/YYYYMMDD/download_requests/
 Por padrao, o pedido usa:
 
 - `COUNTRY = BR`
-- `TAXON_KEY` das especies reconciliadas entre MMA e GBIF
+- `TAXON_KEY` das especies, subespecies e variedades reconciliadas entre MMA e GBIF
 - `OCCURRENCE_STATUS = PRESENT`
 - formato `DWCA`
+
+O pedido nao deve incluir matches `HIGHERRANK` ou `NONE`.
+Esses casos significam que o GBIF nao encontrou a especie exata e retornou um nivel mais amplo, como genero, classe ou filo.
+Para o produto de especies ameacadas, usar esses niveis amplos pode trazer muitas ocorrencias de organismos relacionados, mas que nao sao necessariamente a especie ameacada da lista MMA.
 
 `OCCURRENCE_STATUS = PRESENT` significa que o download traz apenas registros em que a especie foi registrada como presente no local.
 Registros `ABSENT`, quando existem, indicam que houve busca ou amostragem, mas a especie nao foi encontrada.
@@ -174,3 +179,17 @@ uv run python -m src.gbif.occurrence.bronze.async_threatened_occurrence_download
 
 Depois do ZIP no bronze, o produto `threatened_species_brazil` gera `occurrences.json` diretamente a partir do `occurrence.txt` do DWCA oficial.
 Os passos seguintes leem `occurrences.json` de forma incremental para gerar `datasets.json` e o GeoPackage.
+
+O GeoPackage usa as coordenadas ACM (`acm_decimal_latitude` e `acm_decimal_longitude`) e aplica filtros adicionais:
+
+- latitude e longitude precisam ser validas
+- registros com alerta geoespacial do GBIF sao descartados
+- pontos fora da caixa aproximada do Brasil sao descartados
+- pontos possivelmente invertidos sao exportados com latitude/longitude corrigidas nos campos ACM e `acm_coordinate_was_swapped = true`
+
+Caixa aproximada usada:
+
+```text
+latitude:  -34 a 6
+longitude: -74 a -28
+```

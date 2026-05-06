@@ -141,6 +141,9 @@ herbario ou outro tipo de fonte.
 No projeto, usamos `occurrence` para encontrar os registros das especies ameacadas dentro do Brasil.
 Esses registros alimentam o arquivo `occurrences.json` e, quando possuem coordenadas validas, tambem entram no GeoPackage para visualizacao em mapa.
 
+Importante: uma ocorrencia so entra na gold quando o registro GBIF consegue ser ligado a uma especie, subespecie ou variedade da lista MMA por meio de `species_id`.
+Registros retornados por matches amplos do GBIF, como genero, classe ou filo, devem ser descartados da gold final porque podem representar organismos relacionados, mas nao necessariamente a especie ameacada oficial.
+
 O `occurrence` ajuda a responder perguntas como:
 
 - onde existem registros dessa especie no Brasil?
@@ -436,11 +439,35 @@ Regra de formacao:
 
 - o GeoPackage deve ser derivado de `occurrences.json`
 - cada feicao representa uma ocorrencia GBIF georreferenciada
-- `decimal_longitude` deve ser usado como coordenada X
-- `decimal_latitude` deve ser usado como coordenada Y
+- `decimal_longitude` e `decimal_latitude` preservam a coordenada original do GBIF
+- `acm_decimal_longitude` deve ser usado como coordenada X no mapa
+- `acm_decimal_latitude` deve ser usado como coordenada Y no mapa
 - o sistema de coordenadas deve ser `EPSG:4326`
 - somente ocorrencias com latitude e longitude validas entram no `.gpkg`
+- ocorrencias marcadas pelo GBIF com problema geoespacial nao entram no `.gpkg`
+- pontos fora da caixa geografica aproximada do Brasil nao entram no `.gpkg`
+- coordenadas possivelmente invertidas entram no `.gpkg` usando os campos ACM corrigidos
 - ocorrencias sem coordenadas continuam preservadas em `occurrences.json`
+
+A caixa geografica usada como filtro conservador e:
+
+```text
+latitude:  -34 a 6
+longitude: -74 a -28
+```
+
+Esse filtro nao substitui uma validacao cartografica oficial contra o limite do Brasil.
+Ele serve para remover erros evidentes de coordenada, como pontos em outro continente ou em outro hemisferio, antes da entrega em GeoPackage.
+
+Quando a coordenada original cai fora do Brasil, mas a inversao latitude/longitude cai dentro da caixa aproximada do Brasil, o registro recebe:
+
+```text
+acm_coordinate_status = POSSIBLE_SWAPPED
+acm_coordinate_was_swapped = true
+```
+
+Nesse caso, o GeoPackage usa `acm_decimal_latitude` e `acm_decimal_longitude`.
+As coordenadas originais continuam preservadas em `decimal_latitude` e `decimal_longitude`.
 
 Campos minimos no GeoPackage:
 
@@ -455,12 +482,19 @@ dataset_key
 basis_of_record
 occurrence_status
 event_date
+acm_event_date
+acm_event_date_precision
 country_code
 state_province
 municipality
 locality
 decimal_latitude
 decimal_longitude
+acm_decimal_latitude
+acm_decimal_longitude
+acm_coordinate_was_swapped
+acm_coordinate_status
+acm_coordinate_issue
 coordinate_uncertainty_in_meters
 has_geospatial_issue
 license
@@ -545,6 +579,9 @@ Descricoes:
 
 Unidade de registro: uma ocorrencia GBIF no Brasil associada a uma especie ameacada.
 
+Regra de inclusao: cada registro precisa ter `species_id` preenchido.
+Isso garante que a ocorrencia esta vinculada a uma entrada da lista MMA usada como referencia oficial.
+
 ```text
 record_id
 gbif_id
@@ -555,6 +592,9 @@ dataset_key
 basis_of_record
 occurrence_status
 event_date
+acm_event_date
+acm_event_date_precision
+acm_event_date_issue
 year
 month
 day
@@ -564,6 +604,11 @@ municipality
 locality
 decimal_latitude
 decimal_longitude
+acm_decimal_latitude
+acm_decimal_longitude
+acm_coordinate_was_swapped
+acm_coordinate_status
+acm_coordinate_issue
 coordinate_uncertainty_in_meters
 has_coordinate
 has_geospatial_issue
@@ -586,7 +631,10 @@ Descricoes:
 - `dataset_key`: dataset GBIF de origem.
 - `basis_of_record`: tipo do registro, como especime preservado, observacao humana ou outro.
 - `occurrence_status`: status da ocorrencia, geralmente presenca ou ausencia quando informado.
-- `event_date`: data da ocorrencia.
+- `event_date`: data da ocorrencia como veio do GBIF, preservada para rastreabilidade.
+- `acm_event_date`: data normalizada pela ACM no formato `YYYY-MM-DD`, preenchida apenas quando houver dia completo.
+- `acm_event_date_precision`: precisao identificada para `event_date`, como `DAY`, `DATETIME`, `MONTH`, `YEAR`, `RANGE`, `INVALID` ou `MISSING`.
+- `acm_event_date_issue`: observacao tecnica quando a data nao puder ser normalizada, por exemplo `missing_day` ou `invalid_calendar_date`.
 - `year`: ano da ocorrencia.
 - `month`: mes da ocorrencia.
 - `day`: dia da ocorrencia.
@@ -596,6 +644,11 @@ Descricoes:
 - `locality`: descricao textual da localidade.
 - `decimal_latitude`: latitude decimal da ocorrencia quando disponivel.
 - `decimal_longitude`: longitude decimal da ocorrencia quando disponivel.
+- `acm_decimal_latitude`: latitude normalizada pela ACM para uso espacial.
+- `acm_decimal_longitude`: longitude normalizada pela ACM para uso espacial.
+- `acm_coordinate_was_swapped`: indica se latitude e longitude provavelmente vieram invertidas e foram ajustadas nos campos ACM.
+- `acm_coordinate_status`: classificacao da coordenada, como `VALID_ORIGINAL`, `POSSIBLE_SWAPPED`, `OUTSIDE_BRAZIL_BBOX`, `GBIF_GEOSPATIAL_ISSUE` ou `MISSING_OR_INVALID`.
+- `acm_coordinate_issue`: observacao tecnica quando a coordenada nao e diretamente aproveitavel.
 - `coordinate_uncertainty_in_meters`: incerteza da coordenada em metros quando informada.
 - `has_coordinate`: indicador de existencia de coordenada no registro quando informado pelo GBIF.
 - `has_geospatial_issue`: indicador de problema geografico informado pelo GBIF.

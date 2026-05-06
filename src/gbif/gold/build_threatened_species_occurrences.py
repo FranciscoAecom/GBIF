@@ -11,6 +11,8 @@ from pathlib import Path
 from zipfile import ZipFile
 
 from src.gbif.gold.shared import write_json
+from src.gbif.shared.coordinate_normalization import normalize_brazil_coordinate
+from src.gbif.shared.date_normalization import normalize_event_date
 from src.gbif.shared.dates import snapshot_date_iso
 from src.gbif.shared.json_stream import write_json_array
 from src.gbif.shared.normalize import clean_text, clean_uuid, first_present
@@ -34,6 +36,9 @@ OCCURRENCE_FIELDS = [
     "basis_of_record",
     "occurrence_status",
     "event_date",
+    "acm_event_date",
+    "acm_event_date_precision",
+    "acm_event_date_issue",
     "year",
     "month",
     "day",
@@ -46,6 +51,11 @@ OCCURRENCE_FIELDS = [
     "coordinate_uncertainty_in_meters",
     "has_coordinate",
     "has_geospatial_issue",
+    "acm_decimal_latitude",
+    "acm_decimal_longitude",
+    "acm_coordinate_was_swapped",
+    "acm_coordinate_status",
+    "acm_coordinate_issue",
     "sampling_event_id",
     "sampling_protocol",
     "sampling_effort",
@@ -147,9 +157,17 @@ def find_species(row: dict, species_by_taxon_key: dict[int, dict]) -> dict:
     return {}
 
 
-def transform_occurrence(row: dict, archive_path: Path, species_by_taxon_key: dict[int, dict], snapshot_date: str) -> dict:
+def transform_occurrence(
+    row: dict, archive_path: Path, species_by_taxon_key: dict[int, dict], snapshot_date: str
+) -> dict | None:
     species = find_species(row, species_by_taxon_key)
+    if not species:
+        return None
     gbif_id = parse_int(first_row_value(row, "gbifID", "key", "id"))
+    event_date = clean_text(first_row_value(row, "eventDate"))
+    decimal_latitude = parse_float(first_row_value(row, "decimalLatitude"))
+    decimal_longitude = parse_float(first_row_value(row, "decimalLongitude"))
+    has_geospatial_issue = parse_bool(first_row_value(row, "hasGeospatialIssues", "hasGeospatialIssue"))
 
     return {
         "record_id": f"GBIF_{gbif_id}_{snapshot_date}" if gbif_id else None,
@@ -160,7 +178,8 @@ def transform_occurrence(row: dict, archive_path: Path, species_by_taxon_key: di
         "dataset_key": clean_uuid(first_row_value(row, "datasetKey")),
         "basis_of_record": clean_text(first_row_value(row, "basisOfRecord")),
         "occurrence_status": clean_text(first_row_value(row, "occurrenceStatus")),
-        "event_date": clean_text(first_row_value(row, "eventDate")),
+        "event_date": event_date,
+        **normalize_event_date(event_date),
         "year": parse_int(first_row_value(row, "year")),
         "month": parse_int(first_row_value(row, "month")),
         "day": parse_int(first_row_value(row, "day")),
@@ -168,11 +187,16 @@ def transform_occurrence(row: dict, archive_path: Path, species_by_taxon_key: di
         "state_province": clean_text(first_row_value(row, "stateProvince")),
         "municipality": clean_text(first_row_value(row, "municipality")),
         "locality": clean_text(first_row_value(row, "locality")),
-        "decimal_latitude": parse_float(first_row_value(row, "decimalLatitude")),
-        "decimal_longitude": parse_float(first_row_value(row, "decimalLongitude")),
+        "decimal_latitude": decimal_latitude,
+        "decimal_longitude": decimal_longitude,
         "coordinate_uncertainty_in_meters": parse_float(first_row_value(row, "coordinateUncertaintyInMeters")),
         "has_coordinate": parse_bool(first_row_value(row, "hasCoordinate")),
-        "has_geospatial_issue": parse_bool(first_row_value(row, "hasGeospatialIssue")),
+        "has_geospatial_issue": has_geospatial_issue,
+        **normalize_brazil_coordinate(
+            decimal_latitude,
+            decimal_longitude,
+            has_geospatial_issue=has_geospatial_issue,
+        ),
         "sampling_event_id": clean_text(first_row_value(row, "eventID")),
         "sampling_protocol": clean_text(first_row_value(row, "samplingProtocol")),
         "sampling_effort": clean_text(first_row_value(row, "samplingEffort")),
@@ -195,7 +219,9 @@ def write_records(records, output_path: Path) -> dict:
     return quality_counts
 
 
-def update_manifest(snapshot_date: str, archive_path: Path, download_key: str | None, record_count: int) -> None:
+def update_manifest(
+    snapshot_date: str, archive_path: Path, download_key: str | None, record_count: int, skipped_unmatched_count: int
+) -> None:
     manifest_path = GOLD_DIR / "manifest.json"
     manifest = json.loads(manifest_path.read_text(encoding="utf-8")) if manifest_path.exists() else {}
     manifest.setdefault("product", "threatened_species_brazil")
@@ -205,6 +231,7 @@ def update_manifest(snapshot_date: str, archive_path: Path, download_key: str | 
     manifest.setdefault("outputs", {})
     manifest["outputs"]["occurrences"] = str(GOLD_DIR / "occurrences.json")
     manifest["occurrence_record_count"] = record_count
+    manifest["occurrence_skipped_unmatched_count"] = skipped_unmatched_count
     write_json(manifest_path, manifest)
 
 
@@ -213,14 +240,27 @@ def build_gold(args: argparse.Namespace) -> None:
     archive_path = find_download_zip(args.date, args.download_key)
     species_by_taxon_key = load_species_by_taxon_key()
 
-    records = (
-        transform_occurrence(row, archive_path, species_by_taxon_key, snapshot_date)
-        for row in iter_dwca_occurrences(archive_path)
-    )
+    counters = {"skipped_unmatched_count": 0}
+
+    def records():
+        for row in iter_dwca_occurrences(archive_path):
+            record = transform_occurrence(row, archive_path, species_by_taxon_key, snapshot_date)
+            if record is None:
+                counters["skipped_unmatched_count"] += 1
+                continue
+            yield record
+
     GOLD_DIR.mkdir(parents=True, exist_ok=True)
-    quality_report = write_records(records, GOLD_DIR / "occurrences.json")
+    quality_report = write_records(records(), GOLD_DIR / "occurrences.json")
+    quality_report["skipped_unmatched_count"] = counters["skipped_unmatched_count"]
     write_json(GOLD_DIR / "occurrences_quality_report.json", quality_report)
-    update_manifest(snapshot_date, archive_path, args.download_key, quality_report["record_count"])
+    update_manifest(
+        snapshot_date,
+        archive_path,
+        args.download_key,
+        quality_report["record_count"],
+        counters["skipped_unmatched_count"],
+    )
     print(f"saved {quality_report['record_count']} threatened occurrence records to {GOLD_DIR / 'occurrences.json'}")
 
 
