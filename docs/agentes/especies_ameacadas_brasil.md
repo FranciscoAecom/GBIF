@@ -448,6 +448,8 @@ Regra de formacao:
 - pontos fora da caixa geografica aproximada do Brasil nao entram no `.gpkg`
 - coordenadas possivelmente invertidas entram no `.gpkg` usando os campos ACM corrigidos
 - ocorrencias sem coordenadas continuam preservadas em `occurrences.json`
+- duplicidades espaciais sao removidas apenas no `.gpkg`
+- `occurrences.json` preserva todos os registros, inclusive duplicados, fora do Brasil, com problema geoespacial ou sem coordenada
 
 A caixa geografica usada como filtro conservador e:
 
@@ -468,6 +470,29 @@ acm_coordinate_was_swapped = true
 
 Nesse caso, o GeoPackage usa `acm_decimal_latitude` e `acm_decimal_longitude`.
 As coordenadas originais continuam preservadas em `decimal_latitude` e `decimal_longitude`.
+
+Regra de deduplicacao espacial do GeoPackage:
+
+```text
+species_id + acm_decimal_latitude + acm_decimal_longitude
+```
+
+Quando houver mais de uma ocorrencia da mesma especie no mesmo ponto, o `.gpkg` mantem apenas uma feicao.
+Os registros excedentes continuam preservados em `occurrences.json`.
+
+O registro mantido no `.gpkg` segue esta prioridade:
+
+1. registro com `acm_event_date` preenchido
+2. menor `coordinate_uncertainty_in_meters`
+3. registro com `references` preenchido
+4. menor `gbif_id` como desempate estavel
+
+O `.gpkg` inclui:
+
+```text
+acm_spatial_duplicate_key
+acm_spatial_duplicate_count
+```
 
 Campos minimos no GeoPackage:
 
@@ -495,6 +520,8 @@ acm_decimal_longitude
 acm_coordinate_was_swapped
 acm_coordinate_status
 acm_coordinate_issue
+acm_spatial_duplicate_key
+acm_spatial_duplicate_count
 coordinate_uncertainty_in_meters
 has_geospatial_issue
 license

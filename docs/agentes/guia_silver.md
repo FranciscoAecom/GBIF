@@ -80,3 +80,21 @@ Regras:
 
 O GeoPackage deve usar `acm_decimal_latitude` e `acm_decimal_longitude`.
 As coordenadas originais continuam disponiveis para auditoria.
+
+## Duplicidade espacial
+
+A silver/gold deve preservar todos os registros no JSON.
+Duplicidades espaciais nao devem ser apagadas de `occurrences.json`.
+
+Para consumo cartografico, o GeoPackage pode remover duplicidades usando a chave:
+
+```text
+species_id + acm_decimal_latitude + acm_decimal_longitude
+```
+
+No fluxo geral sem `species_id`, a chave tecnica equivalente pode usar `taxon_key`.
+
+Essa regra significa:
+
+- JSON final = base completa e auditavel
+- GeoPackage = camada de mapa deduplicada

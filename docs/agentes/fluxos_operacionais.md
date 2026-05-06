@@ -189,6 +189,7 @@ O GeoPackage usa as coordenadas ACM (`acm_decimal_latitude` e `acm_decimal_longi
 - registros com alerta geoespacial do GBIF sao descartados quando a inversao latitude/longitude nao resolve o problema
 - pontos fora da caixa aproximada do Brasil sao descartados
 - pontos possivelmente invertidos sao exportados com latitude/longitude corrigidas nos campos ACM e `acm_coordinate_was_swapped = true`
+- duplicidades espaciais sao removidas apenas no GeoPackage
 
 Caixa aproximada usada:
 
@@ -196,3 +197,12 @@ Caixa aproximada usada:
 latitude:  -34 a 6
 longitude: -74 a -28
 ```
+
+Regra de deduplicacao do GeoPackage:
+
+```text
+species_id + acm_decimal_latitude + acm_decimal_longitude
+```
+
+O `occurrences.json` continua completo e preserva todos os registros.
+O GeoPackage mantem uma feicao por especie/ponto para melhorar o consumo cartografico.

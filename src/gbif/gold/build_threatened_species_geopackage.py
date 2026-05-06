@@ -48,6 +48,8 @@ GPKG_FIELDS = [
     "has_geospatial_issue",
     "license",
     "references",
+    "acm_spatial_duplicate_key",
+    "acm_spatial_duplicate_count",
 ]
 
 
@@ -59,12 +61,61 @@ def is_valid_coordinate(record: dict) -> bool:
     return record.get("acm_coordinate_status") in {"VALID_ORIGINAL", "POSSIBLE_SWAPPED"}
 
 
+def spatial_duplicate_key(record: dict) -> str:
+    return "|".join(
+        [
+            str(record.get("species_id")),
+            f"{record.get('acm_decimal_latitude'):.6f}",
+            f"{record.get('acm_decimal_longitude'):.6f}",
+        ]
+    )
+
+
+def quality_sort_key(record: dict) -> tuple:
+    uncertainty = record.get("coordinate_uncertainty_in_meters")
+    if not isinstance(uncertainty, int | float):
+        uncertainty = float("inf")
+    return (
+        record.get("acm_event_date") is None,
+        uncertainty,
+        record.get("references") is None,
+        record.get("gbif_id") or float("inf"),
+    )
+
+
+def build_best_records_by_spatial_key() -> tuple[dict[str, dict], dict[str, int], int, int]:
+    best_records: dict[str, dict] = {}
+    duplicate_counts: dict[str, int] = {}
+    total_records = 0
+    candidate_records = 0
+
+    for record in iter_json_array(OCCURRENCES_PATH):
+        total_records += 1
+        if not is_valid_coordinate(record):
+            continue
+
+        candidate_records += 1
+        duplicate_key = spatial_duplicate_key(record)
+        duplicate_counts[duplicate_key] = duplicate_counts.get(duplicate_key, 0) + 1
+        current_best = best_records.get(duplicate_key)
+        if current_best is None or quality_sort_key(record) < quality_sort_key(current_best):
+            best_records[duplicate_key] = record
+
+    return best_records, duplicate_counts, total_records, candidate_records
+
+
 def write_batch(rows: list[dict], geometries: list[Point], append: bool) -> None:
     gdf = gpd.GeoDataFrame(rows, geometry=geometries, crs="EPSG:4326")
     gdf.to_file(GPKG_PATH, layer=LAYER_NAME, driver="GPKG", mode="a" if append else "w")
 
 
-def update_manifest(total_records: int, spatial_records: int) -> None:
+def update_manifest(
+    total_records: int,
+    candidate_records: int,
+    spatial_records: int,
+    duplicate_groups: int,
+    duplicate_features_removed: int,
+) -> None:
     manifest_path = GOLD_DIR / "manifest.json"
     manifest = json.loads(manifest_path.read_text(encoding="utf-8")) if manifest_path.exists() else {}
     manifest.setdefault("outputs", {})
@@ -79,7 +130,21 @@ def update_manifest(total_records: int, spatial_records: int) -> None:
     }
     manifest["geopackage_source"] = str(OCCURRENCES_PATH)
     manifest["geopackage_source_record_count"] = total_records
+    manifest["geopackage_candidate_feature_count_before_deduplication"] = candidate_records
     manifest["geopackage_feature_count"] = spatial_records
+    manifest["geopackage_deduplication"] = {
+        "enabled": True,
+        "key": "species_id + acm_decimal_latitude + acm_decimal_longitude rounded to 6 decimals",
+        "duplicate_groups": duplicate_groups,
+        "duplicate_features_removed": duplicate_features_removed,
+        "kept_record_priority": [
+            "acm_event_date filled",
+            "smallest coordinate_uncertainty_in_meters",
+            "references filled",
+            "smallest gbif_id",
+        ],
+        "json_outputs_keep_all_records": True,
+    }
     write_json(manifest_path, manifest)
 
 
@@ -88,18 +153,19 @@ def build_geopackage(args: argparse.Namespace) -> None:
         GPKG_PATH.unlink()
     rows = []
     geometries = []
-    total_records = 0
-    spatial_records = 0
     append = False
+    best_records, duplicate_counts, total_records, candidate_records = build_best_records_by_spatial_key()
+    spatial_records = len(best_records)
+    duplicate_groups = sum(1 for count in duplicate_counts.values() if count > 1)
+    duplicate_features_removed = sum(count - 1 for count in duplicate_counts.values() if count > 1)
 
-    for record in iter_json_array(OCCURRENCES_PATH):
-        total_records += 1
-        if not is_valid_coordinate(record):
-            continue
-
-        rows.append({field: record.get(field) for field in GPKG_FIELDS})
+    for duplicate_key, record in sorted(best_records.items()):
+        duplicate_count = duplicate_counts[duplicate_key]
+        row = {field: record.get(field) for field in GPKG_FIELDS}
+        row["acm_spatial_duplicate_key"] = duplicate_key
+        row["acm_spatial_duplicate_count"] = duplicate_count
+        rows.append(row)
         geometries.append(Point(record["acm_decimal_longitude"], record["acm_decimal_latitude"]))
-        spatial_records += 1
 
         if len(rows) >= args.batch_size:
             write_batch(rows, geometries, append=append)
@@ -110,7 +176,7 @@ def build_geopackage(args: argparse.Namespace) -> None:
     if rows:
         write_batch(rows, geometries, append=append)
 
-    update_manifest(total_records, spatial_records)
+    update_manifest(total_records, candidate_records, spatial_records, duplicate_groups, duplicate_features_removed)
     print(f"saved {spatial_records} features to {GPKG_PATH}")
 
 
