@@ -34,6 +34,7 @@ uv run python -m src.gbif.reference.threatened_species_brazil.download_official_
 uv run python -m src.gbif.reference.threatened_species_brazil.build_reference
 uv run python -m src.gbif.reference.threatened_species_brazil.reconcile_gbif_taxonomy
 uv run python -m src.gbif.reference.threatened_species_brazil.apply_gbif_taxonomy_matches
+uv run python -m src.gbif.reference.ibge.download_reference
 uv run python -m src.gbif.occurrence.bronze.async_threatened_occurrence_download prepare --date YYYYMMDD
 uv run python -m src.gbif.occurrence.bronze.async_threatened_occurrence_download submit --date YYYYMMDD
 uv run python -m src.gbif.occurrence.bronze.async_threatened_occurrence_download status --date YYYYMMDD --download-key <download_key>
@@ -51,16 +52,60 @@ Observacoes:
 - Por padrao, `build_reference` mantem todas as categorias observadas na referencia oficial.
 - `reconcile_gbif_taxonomy` usa a API publica `species/match` do GBIF para obter `taxonKey` e nome aceito.
 - `apply_gbif_taxonomy_matches` gera `threatened_species_brazil_reference_gbif_matched.json` com os campos taxonomicos preenchidos.
+- `download_reference` em `src.gbif.reference.ibge` baixa tabelas e malhas oficiais do IBGE para preencher estado e municipio por intersecao espacial.
 - `async_threatened_occurrence_download` usa a Download API assincrona do GBIF para volumes grandes.
 - O pedido completo usa os `TAXON_KEY` reconciliados entre MMA e GBIF apenas quando o match representa taxon de especie, subespecie ou variedade.
 - Matches amplos como `HIGHERRANK` ou `NONE` nao entram no pedido padrao, porque podem trazer descendentes demais e incluir registros que nao correspondem diretamente a especies ameacadas da lista MMA.
 - Limites opcionais devem ficar restritos a testes controlados ou diagnosticos tecnicos.
 - `build_threatened_species_occurrences` gera `occurrences.json` lendo o `occurrence.txt` dentro do ZIP DWCA oficial baixado do GBIF e mantem apenas ocorrencias ligadas a um `species_id` da referencia MMA.
+- `build_threatened_species_occurrences` tambem cruza as coordenadas ACM com a malha IBGE para preencher `acm_state_province`, `acm_state_code`, `acm_municipality` e `acm_municipality_code`.
 - `build_threatened_species_datasets` gera `datasets.json` a partir dos `dataset_key` observados nas ocorrencias e metadados publicos do GBIF, lendo `occurrences.json` em streaming.
 - `build_threatened_species_geopackage` gera `threatened_species_occurrences.gpkg` com ocorrencias georreferenciadas em `EPSG:4326`, gravando em lotes para suportar volumes grandes.
 - Para carga grande de ocorrencias, usar a Download API assincrona.
 - A referencia MMA 2021 em CSV e a referencia operacional da primeira versao; antes da gold final normativa, validar contra as portarias MMA vigentes.
 - Para a primeira versao operacional, foi decidido usar MMA Dados Abertos 2021 como referencia da gold.
+
+## Referencia IBGE
+
+Este passo baixa as bases oficiais usadas para localizar cada ocorrencia georreferenciada em um estado e municipio brasileiro.
+
+```powershell
+uv run python -m src.gbif.reference.ibge.download_reference
+```
+
+Saida esperada:
+
+```text
+data/gbif/00_reference/ibge/
+|-- manifest.json
+|-- tables/
+|   |-- states.csv
+|   |-- states.json
+|   |-- municipalities.csv
+|   `-- municipalities.json
+`-- meshes/
+    |-- states.geojson
+    `-- municipalities.geojson
+```
+
+Uso no pipeline:
+
+- `states.csv` e `municipalities.csv` sao tabelas de apoio para leitura humana.
+- `states.json` e `municipalities.json` preservam a resposta original da API de Localidades do IBGE.
+- `states.geojson` e `municipalities.geojson` sao as malhas simplificadas da API de Malhas do IBGE.
+- `occurrences.json` preserva `state_province` e `municipality` como vieram do GBIF.
+- Os campos ACM de localidade sao preenchidos por ponto dentro do poligono IBGE, usando `acm_decimal_latitude` e `acm_decimal_longitude`.
+
+Campos gerados por intersecao espacial:
+
+```text
+acm_state_code
+acm_state_province
+acm_municipality_code
+acm_municipality
+```
+
+Se a ocorrencia nao tiver coordenada ACM valida, esses campos ficam vazios.
 
 ## Download assincrono GBIF
 

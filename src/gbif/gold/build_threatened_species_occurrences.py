@@ -15,9 +15,14 @@ from src.gbif.reference.threatened_species_brazil.filters import (
     load_reference_records,
     operational_species_by_taxon_key,
 )
+from src.gbif.shared.acm_normalization import (
+    normalize_scientific_name,
+    normalize_threat_status_br,
+)
 from src.gbif.shared.coordinate_normalization import normalize_brazil_coordinate
 from src.gbif.shared.date_normalization import normalize_event_date
 from src.gbif.shared.dates import snapshot_date_iso
+from src.gbif.shared.ibge_spatial_lookup import IBGESpatialLookup
 from src.gbif.shared.json_stream import write_json_array
 from src.gbif.shared.normalize import clean_bool, clean_text, clean_uuid, first_present
 from src.gbif.shared.paths import bronze_snapshot_dir
@@ -43,7 +48,11 @@ OCCURRENCE_FIELDS = [
     "day",
     "country_code",
     "state_province",
+    "acm_state_code",
+    "acm_state_province",
     "municipality",
+    "acm_municipality_code",
+    "acm_municipality",
     "locality",
     "decimal_latitude",
     "decimal_longitude",
@@ -60,6 +69,7 @@ OCCURRENCE_FIELDS = [
     "snapshot_date",
     "bronze_file_path",
     "threat_status_br",
+    "acm_threat_status_br",
     "threat_status_br_code",
 ]
 
@@ -139,7 +149,11 @@ def find_species(row: dict, species_by_taxon_key: dict[int, dict]) -> dict:
 
 
 def transform_occurrence(
-    row: dict, archive_path: Path, species_by_taxon_key: dict[int, dict], snapshot_date: str
+    row: dict,
+    archive_path: Path,
+    species_by_taxon_key: dict[int, dict],
+    snapshot_date: str,
+    ibge_lookup: IBGESpatialLookup,
 ) -> dict | None:
     species = find_species(row, species_by_taxon_key)
     if not species:
@@ -149,12 +163,28 @@ def transform_occurrence(
     decimal_latitude = parse_float(first_row_value(row, "decimalLatitude"))
     decimal_longitude = parse_float(first_row_value(row, "decimalLongitude"))
     has_geospatial_issue = parse_bool(first_row_value(row, "hasGeospatialIssues", "hasGeospatialIssue"))
+    scientific_name = normalize_scientific_name(
+        first_row_value(row, "scientificName"),
+        fallback=species.get("scientific_name"),
+    )
+    state_province = clean_text(first_row_value(row, "stateProvince"))
+    municipality = clean_text(first_row_value(row, "municipality"))
+    threat_status_br = species.get("threat_status_br")
+    normalized_coordinate = normalize_brazil_coordinate(
+        decimal_latitude,
+        decimal_longitude,
+        has_geospatial_issue=has_geospatial_issue,
+    )
+    ibge_location = ibge_lookup.lookup(
+        normalized_coordinate.get("acm_decimal_latitude"),
+        normalized_coordinate.get("acm_decimal_longitude"),
+    )
 
     return {
         "record_id": f"GBIF_{gbif_id}_{snapshot_date}" if gbif_id else None,
         "gbif_id": gbif_id,
         "species_id": species.get("species_id"),
-        "scientific_name": clean_text(first_row_value(row, "scientificName") or species.get("scientific_name")),
+        "scientific_name": scientific_name,
         "taxon_key": parse_int(first_row_value(row, "taxonKey")) or species.get("taxon_key"),
         "dataset_key": clean_uuid(first_row_value(row, "datasetKey")),
         "basis_of_record": clean_text(first_row_value(row, "basisOfRecord")),
@@ -165,19 +195,16 @@ def transform_occurrence(
         "month": parse_int(first_row_value(row, "month")),
         "day": parse_int(first_row_value(row, "day")),
         "country_code": clean_text(first_row_value(row, "countryCode")),
-        "state_province": clean_text(first_row_value(row, "stateProvince")),
-        "municipality": clean_text(first_row_value(row, "municipality")),
+        "state_province": state_province,
+        "municipality": municipality,
+        **ibge_location.as_record_fields(),
         "locality": clean_text(first_row_value(row, "locality")),
         "decimal_latitude": decimal_latitude,
         "decimal_longitude": decimal_longitude,
         "coordinate_uncertainty_in_meters": parse_float(first_row_value(row, "coordinateUncertaintyInMeters")),
         "has_coordinate": parse_bool(first_row_value(row, "hasCoordinate")),
         "has_geospatial_issue": has_geospatial_issue,
-        **normalize_brazil_coordinate(
-            decimal_latitude,
-            decimal_longitude,
-            has_geospatial_issue=has_geospatial_issue,
-        ),
+        **normalized_coordinate,
         "sampling_event_id": clean_text(first_row_value(row, "eventID")),
         "sampling_protocol": clean_text(first_row_value(row, "samplingProtocol")),
         "sampling_effort": clean_text(first_row_value(row, "samplingEffort")),
@@ -185,7 +212,8 @@ def transform_occurrence(
         "references": clean_text(first_row_value(row, "references")),
         "snapshot_date": snapshot_date,
         "bronze_file_path": f"{archive_path}::occurrence.txt",
-        "threat_status_br": species.get("threat_status_br"),
+        "threat_status_br": threat_status_br,
+        "acm_threat_status_br": normalize_threat_status_br(threat_status_br),
         "threat_status_br_code": species.get("threat_status_br_code"),
     }
 
@@ -209,6 +237,18 @@ def update_manifest(
     manifest["occurrence_snapshot_date"] = snapshot_date
     manifest["occurrence_bronze_download_zip"] = str(archive_path)
     manifest["occurrence_download_key"] = download_key or archive_path.stem
+    manifest["ibge_reference_path"] = "data/gbif/00_reference/ibge"
+    manifest["ibge_spatial_lookup"] = {
+        "enabled": True,
+        "input_coordinate_fields": ["acm_decimal_latitude", "acm_decimal_longitude"],
+        "outputs": [
+            "acm_state_code",
+            "acm_state_province",
+            "acm_municipality_code",
+            "acm_municipality",
+        ],
+        "method": "point-in-polygon against IBGE simplified GeoJSON meshes",
+    }
     manifest.setdefault("outputs", {})
     manifest["outputs"]["occurrences"] = str(GOLD_DIR / "occurrences.json")
     manifest["occurrence_record_count"] = record_count
@@ -220,12 +260,13 @@ def build_gold(args: argparse.Namespace) -> None:
     snapshot_date = snapshot_date_iso(args.date)
     archive_path = find_download_zip(args.date, args.download_key)
     species_by_taxon_key = load_species_by_taxon_key()
+    ibge_lookup = IBGESpatialLookup()
 
     counters = {"skipped_unmatched_count": 0}
 
     def records():
         for row in iter_dwca_occurrences(archive_path):
-            record = transform_occurrence(row, archive_path, species_by_taxon_key, snapshot_date)
+            record = transform_occurrence(row, archive_path, species_by_taxon_key, snapshot_date, ibge_lookup)
             if record is None:
                 counters["skipped_unmatched_count"] += 1
                 continue

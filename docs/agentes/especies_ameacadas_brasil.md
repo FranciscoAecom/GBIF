@@ -488,6 +488,7 @@ gbif_id
 species_id
 scientific_name
 threat_status_br
+acm_threat_status_br
 taxon_key
 dataset_key
 basis_of_record
@@ -496,7 +497,11 @@ event_date
 acm_event_date
 country_code
 state_province
+acm_state_code
+acm_state_province
 municipality
+acm_municipality_code
+acm_municipality
 locality
 decimal_latitude
 decimal_longitude
@@ -512,6 +517,7 @@ Observacoes:
 
 - `threat_status_br` deve vir do relacionamento com `species.json`.
 - `dataset_key` permite ligar a feicao espacial a `datasets.json`.
+- `acm_state_province` e `acm_municipality` vem da intersecao da coordenada ACM com as malhas oficiais do IBGE.
 - O `.gpkg` e uma saida de consumo espacial, nao substitui os arquivos JSON relacionais.
 - Arquivos `.gpkg` da camada `gold` devem ser versionados via Git LFS.
 
@@ -537,6 +543,7 @@ family
 genus
 species
 threat_status_br
+acm_threat_status_br
 threat_status_br_code
 threat_status_br_source
 threat_status_br_source_document
@@ -569,6 +576,24 @@ Descricoes:
 - `genus`: genero taxonomico.
 - `species`: binomio especifico aceito ou observado, quando disponivel.
 - `threat_status_br`: categoria de ameaca nacional em texto.
+- `acm_threat_status_br`: categoria de ameaca nacional normalizada pela ACM. A variacao `Criticamente Em Perigo (CR)` e padronizada para `Criticamente em Perigo (CR)`. Apenas `[Não é espécie brasileira]`, `[Não é mais táxon válido]` e `Subespécie que sai da Lista` entram como `Outros`; os demais valores sao preservados.
+
+Valores observados esperados em `acm_threat_status_br`:
+
+```text
+Criticamente em Perigo (CR)
+Criticamente em Perigo (CR)(PEX)
+Dados Insuficientes (DD)
+Em Perigo (EN)
+Extinta (EX)
+Extinta na Natureza (EW)
+Menos Preocupante (LC)
+Quase Ameaçada (NT)
+Regionalmente Extinta (RE)
+Vulnerável (VU)
+Outros
+[Sinonímia M. hypostoma]
+```
 - `threat_status_br_code`: codigo da categoria nacional, como `VU`, `EN`, `CR`, `RE` ou equivalente observado.
 - `threat_status_br_source`: instituicao/fonte da categoria nacional.
 - `threat_status_br_source_document`: documento legal ou tecnico de origem.
@@ -605,7 +630,11 @@ month
 day
 country_code
 state_province
+acm_state_code
+acm_state_province
 municipality
+acm_municipality_code
+acm_municipality
 locality
 decimal_latitude
 decimal_longitude
@@ -621,6 +650,8 @@ license
 references
 snapshot_date
 bronze_file_path
+threat_status_br
+acm_threat_status_br
 ```
 
 Descricoes:
@@ -628,7 +659,7 @@ Descricoes:
 - `record_id`: identificador unico do registro no produto gold.
 - `gbif_id`: identificador original da ocorrencia no GBIF.
 - `species_id`: chave de ligacao com `species.json`.
-- `scientific_name`: nome cientifico associado a ocorrencia no GBIF.
+- `scientific_name`: nome cientifico associado a ocorrencia. Quando o GBIF traz valor numerico indevido nesse campo, o pipeline substitui pelo nome da referencia MMA/GBIF reconciliada.
 - `taxon_key`: chave GBIF do taxon associado a ocorrencia.
 - `dataset_key`: dataset GBIF de origem.
 - `basis_of_record`: tipo do registro, como especime preservado, observacao humana ou outro.
@@ -640,7 +671,11 @@ Descricoes:
 - `day`: dia da ocorrencia.
 - `country_code`: deve ser `BR` para este produto.
 - `state_province`: estado, provincia ou regiao administrativa informada no registro.
+- `acm_state_code`: codigo do estado IBGE obtido por intersecao espacial da coordenada ACM.
+- `acm_state_province`: nome do estado IBGE obtido por intersecao espacial da coordenada ACM.
 - `municipality`: municipio informado no registro.
+- `acm_municipality_code`: codigo do municipio IBGE obtido por intersecao espacial da coordenada ACM.
+- `acm_municipality`: nome do municipio IBGE obtido por intersecao espacial da coordenada ACM.
 - `locality`: descricao textual da localidade.
 - `decimal_latitude`: latitude decimal da ocorrencia quando disponivel.
 - `decimal_longitude`: longitude decimal da ocorrencia quando disponivel.

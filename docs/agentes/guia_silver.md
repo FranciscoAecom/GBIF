@@ -24,6 +24,7 @@ data/gbif/02_silver/metadata/YYYYMMDD/alldatasets.json
 - Criar campos ACM de data normalizada quando houver dia completo.
 - Preservar coordenadas originais do GBIF.
 - Criar campos ACM de coordenada para uso espacial e classificacao de qualidade.
+- Criar campos ACM de estado e municipio por intersecao com malhas IBGE quando houver coordenada valida.
 - Gerar `quality_report.json`.
 - Para bases potencialmente grandes, como `occurrence`, ler e escrever registros de forma incremental sempre que possivel.
 - `occurrence` e `metadata` ja seguem o padrao de escrita incremental em JSON para evitar acumulo desnecessario em memoria.
@@ -74,6 +75,31 @@ Regras:
 
 O GeoPackage deve usar `acm_decimal_latitude` e `acm_decimal_longitude`.
 As coordenadas originais continuam disponiveis para auditoria.
+
+## Localidade em occurrence
+
+Os campos originais devem ser preservados:
+
+```text
+state_province
+municipality
+```
+
+A gold de especies ameacadas cria:
+
+```text
+acm_state_code
+acm_state_province
+acm_municipality_code
+acm_municipality
+```
+
+Regras:
+
+- os campos originais `state_province` e `municipality` continuam como vieram do GBIF.
+- `acm_state_province` e `acm_state_code` sao obtidos pela intersecao da coordenada ACM com a malha de estados do IBGE.
+- `acm_municipality` e `acm_municipality_code` sao obtidos pela intersecao da coordenada ACM com a malha de municipios do IBGE.
+- Quando a ocorrencia nao tem coordenada ACM valida, os campos de localidade ACM ficam `null`.
 
 ## Duplicidade espacial
 

@@ -8,6 +8,7 @@ from datetime import datetime
 from pathlib import Path
 
 from src.gbif.gold.shared import write_json
+from src.gbif.shared.acm_normalization import normalize_threat_status_br
 from src.gbif.shared.quality_checks import build_quality_report
 
 
@@ -32,6 +33,7 @@ SPECIES_FIELDS = [
     "genus",
     "species",
     "threat_status_br",
+    "acm_threat_status_br",
     "threat_status_br_code",
     "threat_status_br_source",
     "threat_status_br_source_document",
@@ -50,6 +52,7 @@ SPECIES_FIELDS = [
 
 def transform_species(record: dict, snapshot_date: str) -> dict:
     transformed = {field: record.get(field) for field in SPECIES_FIELDS}
+    transformed["acm_threat_status_br"] = normalize_threat_status_br(record.get("threat_status_br"))
     transformed["snapshot_date"] = snapshot_date
     return transformed
 
@@ -126,4 +129,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-

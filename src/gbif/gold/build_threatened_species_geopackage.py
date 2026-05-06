@@ -25,6 +25,7 @@ GPKG_FIELDS = [
     "species_id",
     "scientific_name",
     "threat_status_br",
+    "acm_threat_status_br",
     "threat_status_br_code",
     "taxon_key",
     "dataset_key",
@@ -34,7 +35,11 @@ GPKG_FIELDS = [
     "acm_event_date",
     "country_code",
     "state_province",
+    "acm_state_code",
+    "acm_state_province",
     "municipality",
+    "acm_municipality_code",
+    "acm_municipality",
     "locality",
     "decimal_latitude",
     "decimal_longitude",
@@ -45,6 +50,7 @@ GPKG_FIELDS = [
     "license",
     "references",
 ]
+GPKG_TEXT_CODE_FIELDS = {"acm_state_code", "acm_municipality_code"}
 
 
 def is_valid_coordinate(record: dict) -> bool:
@@ -73,6 +79,14 @@ def quality_sort_key(record: dict) -> tuple:
         record.get("references") is None,
         record.get("gbif_id") or float("inf"),
     )
+
+
+def build_geopackage_row(record: dict) -> dict:
+    row = {field: record.get(field) for field in GPKG_FIELDS}
+    for field in GPKG_TEXT_CODE_FIELDS:
+        if row.get(field) is not None:
+            row[field] = str(row[field])
+    return row
 
 
 def build_best_records_by_spatial_key() -> tuple[dict[str, dict], dict[str, int], int, int]:
@@ -151,8 +165,7 @@ def build_geopackage(args: argparse.Namespace) -> None:
     duplicate_features_removed = sum(count - 1 for count in duplicate_counts.values() if count > 1)
 
     for duplicate_key, record in sorted(best_records.items()):
-        row = {field: record.get(field) for field in GPKG_FIELDS}
-        rows.append(row)
+        rows.append(build_geopackage_row(record))
         geometries.append(Point(record["acm_decimal_longitude"], record["acm_decimal_latitude"]))
 
         if len(rows) >= args.batch_size:

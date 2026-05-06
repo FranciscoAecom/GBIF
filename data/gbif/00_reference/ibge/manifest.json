@@ -1,0 +1,24 @@
+{
+  "reference": "ibge_localities_and_meshes",
+  "generated_at": "2026-05-06T17:40:31",
+  "source": "IBGE Servico de Dados",
+  "source_urls": {
+    "states_table": "https://servicodados.ibge.gov.br/api/v1/localidades/estados",
+    "municipalities_table": "https://servicodados.ibge.gov.br/api/v1/localidades/municipios",
+    "states_mesh": "https://servicodados.ibge.gov.br/api/v3/malhas/paises/BR?formato=application/vnd.geo+json&qualidade=minima&intrarregiao=UF",
+    "municipalities_mesh": "https://servicodados.ibge.gov.br/api/v3/malhas/paises/BR?formato=application/vnd.geo+json&qualidade=minima&intrarregiao=municipio"
+  },
+  "files": {
+    "states_json": "data\\gbif\\00_reference\\ibge\\tables\\states.json",
+    "states_csv": "data\\gbif\\00_reference\\ibge\\tables\\states.csv",
+    "municipalities_json": "data\\gbif\\00_reference\\ibge\\tables\\municipalities.json",
+    "municipalities_csv": "data\\gbif\\00_reference\\ibge\\tables\\municipalities.csv",
+    "states_mesh_geojson": "data\\gbif\\00_reference\\ibge\\meshes\\states.geojson",
+    "municipalities_mesh_geojson": "data\\gbif\\00_reference\\ibge\\meshes\\municipalities.geojson"
+  },
+  "notes": [
+    "Tables come from the IBGE Localidades API.",
+    "Meshes come from the IBGE Malhas API using simplified GeoJSON for Brazil with internal divisions.",
+    "The meshes are used to assign acm_state_province and acm_municipality by point-in-polygon lookup."
+  ]
+}
