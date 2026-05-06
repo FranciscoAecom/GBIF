@@ -50,3 +50,17 @@ def clean_uuid(value):
         return str(UUID(text))
     except ValueError:
         return None
+
+
+def clean_bool(value):
+    if isinstance(value, bool):
+        return value
+    text = clean_text(value)
+    if text is None:
+        return None
+    lowered = text.lower()
+    if lowered == "true":
+        return True
+    if lowered == "false":
+        return False
+    return None

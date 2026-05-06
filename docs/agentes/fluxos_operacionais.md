@@ -85,6 +85,8 @@ A senha nunca deve ser salva em codigo, documentacao, manifest ou arquivo de con
 
 Este comando gera o JSON do pedido para revisao.
 Ele nao envia nada ao GBIF.
+Por seguranca, o arquivo preparado grava `creator` e `notificationAddresses` como placeholders.
+As credenciais reais sao aplicadas apenas no envio (`submit`), a partir das variaveis de ambiente.
 
 ```powershell
 uv run python -m src.gbif.occurrence.bronze.async_threatened_occurrence_download prepare --date YYYYMMDD
@@ -123,6 +125,7 @@ uv run python -m src.gbif.occurrence.bronze.async_threatened_occurrence_download
 
 Este comando autentica com a conta GBIF e envia o pedido.
 O retorno principal e o `download_key`.
+O pedido enviado usa `GBIF_USERNAME` e `GBIF_EMAIL` apenas em memoria; a senha nao e gravada nos arquivos do projeto.
 
 ```powershell
 uv run python -m src.gbif.occurrence.bronze.async_threatened_occurrence_download submit --date YYYYMMDD
@@ -183,7 +186,7 @@ Os passos seguintes leem `occurrences.json` de forma incremental para gerar `dat
 O GeoPackage usa as coordenadas ACM (`acm_decimal_latitude` e `acm_decimal_longitude`) e aplica filtros adicionais:
 
 - latitude e longitude precisam ser validas
-- registros com alerta geoespacial do GBIF sao descartados
+- registros com alerta geoespacial do GBIF sao descartados quando a inversao latitude/longitude nao resolve o problema
 - pontos fora da caixa aproximada do Brasil sao descartados
 - pontos possivelmente invertidos sao exportados com latitude/longitude corrigidas nos campos ACM e `acm_coordinate_was_swapped = true`
 

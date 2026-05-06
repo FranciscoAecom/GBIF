@@ -11,18 +11,19 @@ from pathlib import Path
 from zipfile import ZipFile
 
 from src.gbif.gold.shared import write_json
+from src.gbif.reference.threatened_species_brazil.filters import (
+    load_reference_records,
+    operational_species_by_taxon_key,
+)
 from src.gbif.shared.coordinate_normalization import normalize_brazil_coordinate
 from src.gbif.shared.date_normalization import normalize_event_date
 from src.gbif.shared.dates import snapshot_date_iso
 from src.gbif.shared.json_stream import write_json_array
-from src.gbif.shared.normalize import clean_text, clean_uuid, first_present
+from src.gbif.shared.normalize import clean_bool, clean_text, clean_uuid, first_present
 from src.gbif.shared.paths import bronze_snapshot_dir
 from src.gbif.shared.quality_checks import empty_quality_counts, update_quality_counts
 
 
-REFERENCE_PATH = Path(
-    "data/gbif/00_reference/threatened_species_brazil/threatened_species_brazil_reference_gbif_matched.json"
-)
 GOLD_DIR = Path("data/gbif/03_gold/threatened_species_brazil")
 CSV_FIELD_SIZE_LIMIT = sys.maxsize
 
@@ -69,14 +70,7 @@ OCCURRENCE_FIELDS = [
 
 
 def load_species_by_taxon_key() -> dict[int, dict]:
-    records = json.loads(REFERENCE_PATH.read_text(encoding="utf-8"))
-    species_by_taxon_key = {}
-    for record in records:
-        for key_name in ["accepted_taxon_key", "taxon_key"]:
-            taxon_key = parse_int(record.get(key_name))
-            if taxon_key is not None:
-                species_by_taxon_key.setdefault(taxon_key, record)
-    return species_by_taxon_key
+    return operational_species_by_taxon_key(load_reference_records())
 
 
 def parse_int(value) -> int | None:
@@ -100,15 +94,7 @@ def parse_float(value) -> float | None:
 
 
 def parse_bool(value) -> bool | None:
-    text = clean_text(value)
-    if text is None:
-        return None
-    lowered = text.lower()
-    if lowered == "true":
-        return True
-    if lowered == "false":
-        return False
-    return None
+    return clean_bool(value)
 
 
 def first_row_value(row: dict, *field_names: str):

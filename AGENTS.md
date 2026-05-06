@@ -53,6 +53,7 @@ data/gbif/03_gold/
 
 ## Regras Gold
 
-- A camada `gold` nasce da `silver`, nao volta ao `bronze`.
+- Produtos `gold` por classe nascem da `silver`.
+- Produtos analiticos especiais podem ler um ZIP oficial do `bronze` diretamente quando isso for necessario para preservar o pacote GBIF original ou processar volume muito grande em streaming.
 - Produtos finais devem ter `schema.json` e `quality_report.json`.
-- Bases antigas devem ser preservadas em `backup/` antes de sobrescrita.
+- Bases grandes geradas automaticamente podem ser sobrescritas quando forem reproduziveis a partir do bronze, da referencia e do manifest.

@@ -18,14 +18,14 @@ def normalize_brazil_coordinate(latitude, longitude, has_geospatial_issue=None) 
     if not _is_valid_world_coordinate(lat, lon):
         return _result(None, None, False, "INVALID_WORLD_COORDINATE", "outside_world_coordinate_range")
 
-    if has_geospatial_issue is True:
-        return _result(None, None, False, "GBIF_GEOSPATIAL_ISSUE", "gbif_geospatial_issue")
-
-    if _is_inside_brazil_bbox(lat, lon):
+    if _is_inside_brazil_bbox(lat, lon) and has_geospatial_issue is not True:
         return _result(lat, lon, False, "VALID_ORIGINAL", None)
 
     if _is_valid_world_coordinate(lon, lat) and _is_inside_brazil_bbox(lon, lat):
         return _result(lon, lat, True, "POSSIBLE_SWAPPED", "latitude_longitude_probably_swapped")
+
+    if has_geospatial_issue is True:
+        return _result(None, None, False, "GBIF_GEOSPATIAL_ISSUE", "gbif_geospatial_issue")
 
     return _result(None, None, False, "OUTSIDE_BRAZIL_BBOX", "outside_brazil_approximate_bbox")
 

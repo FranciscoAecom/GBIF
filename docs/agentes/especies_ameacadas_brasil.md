@@ -444,7 +444,7 @@ Regra de formacao:
 - `acm_decimal_latitude` deve ser usado como coordenada Y no mapa
 - o sistema de coordenadas deve ser `EPSG:4326`
 - somente ocorrencias com latitude e longitude validas entram no `.gpkg`
-- ocorrencias marcadas pelo GBIF com problema geoespacial nao entram no `.gpkg`
+- ocorrencias marcadas pelo GBIF com problema geoespacial nao entram no `.gpkg`, exceto quando a inversao latitude/longitude cair dentro da caixa aproximada do Brasil
 - pontos fora da caixa geografica aproximada do Brasil nao entram no `.gpkg`
 - coordenadas possivelmente invertidas entram no `.gpkg` usando os campos ACM corrigidos
 - ocorrencias sem coordenadas continuam preservadas em `occurrences.json`

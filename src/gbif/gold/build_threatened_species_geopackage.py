@@ -73,8 +73,9 @@ def update_manifest(total_records: int, spatial_records: int) -> None:
     manifest["geopackage_crs"] = "EPSG:4326"
     manifest["geopackage_coordinate_filters"] = {
         "valid_lat_lon": True,
-        "exclude_gbif_geospatial_issues": True,
+        "exclude_gbif_geospatial_issues": "except_possible_swapped",
         "brazil_approximate_bbox": BRAZIL_BBOX,
+        "included_coordinate_statuses": ["VALID_ORIGINAL", "POSSIBLE_SWAPPED"],
     }
     manifest["geopackage_source"] = str(OCCURRENCES_PATH)
     manifest["geopackage_source_record_count"] = total_records

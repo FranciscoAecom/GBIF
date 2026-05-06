@@ -73,7 +73,8 @@ Regras:
 
 - se a coordenada original cai na caixa aproximada do Brasil, o status e `VALID_ORIGINAL`.
 - se a coordenada original cai fora do Brasil, mas latitude/longitude invertidas caem no Brasil, o status e `POSSIBLE_SWAPPED` e `acm_coordinate_was_swapped = true`.
-- se o GBIF marcou problema geoespacial, o status e `GBIF_GEOSPATIAL_ISSUE`.
+- se a coordenada original tem alerta do GBIF, mas a inversao latitude/longitude cai no Brasil, o status fica `POSSIBLE_SWAPPED`.
+- se o GBIF marcou problema geoespacial e a inversao nao resolve, o status e `GBIF_GEOSPATIAL_ISSUE`.
 - se a coordenada cai fora da caixa aproximada do Brasil mesmo apos testar inversao, o status e `OUTSIDE_BRAZIL_BBOX`.
 - se a coordenada esta ausente ou invalida, o status e `MISSING_OR_INVALID`.
 

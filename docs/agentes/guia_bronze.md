@@ -40,6 +40,7 @@ data/gbif/01_bronze/<classe>/YYYYMMDD/
 - Quando houver identificador estavel, salvar tambem um arquivo por registro em `records/`.
 - Compactar o snapshot ao fim da execucao.
 - Em download assincrono, preservar o ZIP oficial baixado do GBIF e o manifest com `download_key`, filtros e data do pedido.
+- Arquivos de pedido preparados devem usar placeholders para usuario/e-mail GBIF; credenciais reais devem ficar apenas em variaveis de ambiente durante o envio.
 
 Para `occurrence` via API paginada, o extrator deve ser usado apenas em consultas pequenas ou diagnosticos.
 Ele grava registros incrementalmente em `records/`, mas tambem preserva a resposta completa de cada pagina em `pages/`.

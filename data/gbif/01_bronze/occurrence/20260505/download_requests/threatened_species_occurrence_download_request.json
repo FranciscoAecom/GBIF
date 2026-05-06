@@ -1,7 +1,7 @@
 {
-  "creator": "francisco.ribeiro",
+  "creator": "<GBIF_USERNAME>",
   "notificationAddresses": [
-    "francisco.ribeiro@aecom.com"
+    "<GBIF_EMAIL>"
   ],
   "sendNotification": true,
   "format": "DWCA",

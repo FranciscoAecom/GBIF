@@ -11,7 +11,7 @@ from src.gbif.shared.coordinate_normalization import normalize_brazil_coordinate
 from src.gbif.shared.date_normalization import normalize_event_date
 from src.gbif.shared.dates import snapshot_date_iso
 from src.gbif.shared.json_stream import write_json_array
-from src.gbif.shared.normalize import clean_list, clean_text
+from src.gbif.shared.normalize import clean_bool, clean_list, clean_text
 from src.gbif.shared.paths import bronze_bundle_path, bronze_snapshot_dir, silver_snapshot_dir
 from src.gbif.shared.quality_checks import empty_quality_counts, update_quality_counts
 
@@ -65,7 +65,7 @@ FIELDS = [
 def transform_record(raw: dict, bronze_file_path: str, snapshot_date: str) -> dict:
     event_date = clean_text(raw.get("eventDate"))
     normalized_event_date = normalize_event_date(event_date)
-    has_geospatial_issue = raw.get("hasGeospatialIssues") or raw.get("hasGeospatialIssue")
+    has_geospatial_issue = clean_bool(raw.get("hasGeospatialIssues") or raw.get("hasGeospatialIssue"))
     normalized_coordinate = normalize_brazil_coordinate(
         raw.get("decimalLatitude"),
         raw.get("decimalLongitude"),
@@ -99,7 +99,7 @@ def transform_record(raw: dict, bronze_file_path: str, snapshot_date: str) -> di
         "decimal_latitude": raw.get("decimalLatitude"),
         "decimal_longitude": raw.get("decimalLongitude"),
         "coordinate_uncertainty_in_meters": raw.get("coordinateUncertaintyInMeters"),
-        "has_coordinate": raw.get("hasCoordinate"),
+        "has_coordinate": clean_bool(raw.get("hasCoordinate")),
         "has_geospatial_issue": has_geospatial_issue,
         **normalized_coordinate,
         "recorded_by": clean_list(raw.get("recordedBy")),

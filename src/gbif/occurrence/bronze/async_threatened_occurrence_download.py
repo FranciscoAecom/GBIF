@@ -9,18 +9,18 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+from src.gbif.reference.threatened_species_brazil.filters import (
+    REFERENCE_PATH,
+    load_reference_records,
+    operational_taxon_keys,
+)
 from src.gbif.shared.api_client import BASE_URL, GbifApiClient
 from src.gbif.shared.paths import bronze_snapshot_dir
 
 
-REFERENCE_PATH = Path(
-    "data/gbif/00_reference/threatened_species_brazil/threatened_species_brazil_reference_gbif_matched.json"
-)
 REQUEST_ENDPOINT = "occurrence/download/request"
 DOWNLOAD_ENDPOINT = "occurrence/download"
 DOWNLOAD_FILE_BASE_URL = "https://api.gbif.org/occurrence/download/request"
-ALLOWED_REFERENCE_RANKS = {"SPECIES", "SUBSPECIES", "VARIETY"}
-EXCLUDED_MATCH_STATUSES = {"HIGHERRANK", "NONE"}
 
 
 def write_json(path: Path, payload: dict[str, Any]) -> None:
@@ -67,22 +67,7 @@ def read_credentials() -> tuple[str, str, str]:
 
 
 def unique_taxon_keys(species_limit: int | None = None) -> list[int]:
-    records = json.loads(REFERENCE_PATH.read_text(encoding="utf-8"))
-    taxon_keys: list[int] = []
-    seen: set[int] = set()
-    for record in records:
-        if record.get("taxon_rank") not in ALLOWED_REFERENCE_RANKS:
-            continue
-        if record.get("gbif_checklist_match_status") in EXCLUDED_MATCH_STATUSES:
-            continue
-        taxon_key = record.get("accepted_taxon_key") or record.get("taxon_key")
-        if not taxon_key or taxon_key in seen:
-            continue
-        taxon_keys.append(int(taxon_key))
-        seen.add(int(taxon_key))
-        if species_limit and len(taxon_keys) >= species_limit:
-            break
-    return taxon_keys
+    return operational_taxon_keys(load_reference_records(), limit=species_limit)
 
 
 def build_predicate(taxon_keys: list[int], include_absent: bool, has_coordinate: bool | None) -> dict[str, Any]:
@@ -115,12 +100,10 @@ def build_request_payload(
 
 
 def prepare(args: argparse.Namespace) -> Path:
-    username = os.getenv("GBIF_USERNAME") or "<GBIF_USERNAME>"
-    email = os.getenv("GBIF_EMAIL") or "<GBIF_EMAIL>"
     taxon_keys = unique_taxon_keys(args.species_limit)
     payload = build_request_payload(
-        username=username,
-        email=email,
+        username="<GBIF_USERNAME>",
+        email="<GBIF_EMAIL>",
         taxon_keys=taxon_keys,
         download_format=args.format,
         include_absent=args.include_absent,
