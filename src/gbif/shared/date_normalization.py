@@ -16,18 +16,10 @@ DATE_RANGE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}/\d{4}-\d{2}-\d{2}$")
 def normalize_event_date(value) -> dict[str, str | None]:
     text = clean_text(value)
     if text is None:
-        return {
-            "acm_event_date": None,
-            "acm_event_date_precision": "MISSING",
-            "acm_event_date_issue": "missing_event_date",
-        }
+        return {"acm_event_date": None}
 
     if DATE_RANGE_RE.match(text):
-        return {
-            "acm_event_date": None,
-            "acm_event_date_precision": "RANGE",
-            "acm_event_date_issue": "date_range_not_normalized",
-        }
+        return {"acm_event_date": None}
 
     if FULL_DATE_RE.match(text):
         return _normalize_full_date(text, "DAY")
@@ -37,18 +29,10 @@ def normalize_event_date(value) -> dict[str, str | None]:
         return _normalize_full_date(datetime_match.group(1), "DATETIME")
 
     if YEAR_MONTH_RE.match(text):
-        return {
-            "acm_event_date": None,
-            "acm_event_date_precision": "MONTH",
-            "acm_event_date_issue": "missing_day",
-        }
+        return {"acm_event_date": None}
 
     if YEAR_RE.match(text):
-        return {
-            "acm_event_date": None,
-            "acm_event_date_precision": "YEAR",
-            "acm_event_date_issue": "missing_month_and_day",
-        }
+        return {"acm_event_date": None}
 
     return _try_iso_datetime(text)
 
@@ -57,29 +41,13 @@ def _normalize_full_date(text: str, precision: str) -> dict[str, str | None]:
     try:
         parsed = date.fromisoformat(text)
     except ValueError:
-        return {
-            "acm_event_date": None,
-            "acm_event_date_precision": "INVALID",
-            "acm_event_date_issue": "invalid_calendar_date",
-        }
-    return {
-        "acm_event_date": parsed.isoformat(),
-        "acm_event_date_precision": precision,
-        "acm_event_date_issue": None,
-    }
+        return {"acm_event_date": None}
+    return {"acm_event_date": parsed.isoformat()}
 
 
 def _try_iso_datetime(text: str) -> dict[str, str | None]:
     try:
         parsed = datetime.fromisoformat(text.replace("Z", "+00:00"))
     except ValueError:
-        return {
-            "acm_event_date": None,
-            "acm_event_date_precision": "INVALID",
-            "acm_event_date_issue": "unrecognized_event_date_format",
-        }
-    return {
-        "acm_event_date": parsed.date().isoformat(),
-        "acm_event_date_precision": "DATETIME",
-        "acm_event_date_issue": None,
-    }
+        return {"acm_event_date": None}
+    return {"acm_event_date": parsed.date().isoformat()}

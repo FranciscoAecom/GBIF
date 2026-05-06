@@ -32,7 +32,6 @@ GPKG_FIELDS = [
     "occurrence_status",
     "event_date",
     "acm_event_date",
-    "acm_event_date_precision",
     "country_code",
     "state_province",
     "municipality",
@@ -41,24 +40,17 @@ GPKG_FIELDS = [
     "decimal_longitude",
     "acm_decimal_latitude",
     "acm_decimal_longitude",
-    "acm_coordinate_was_swapped",
-    "acm_coordinate_status",
-    "acm_coordinate_issue",
     "coordinate_uncertainty_in_meters",
     "has_geospatial_issue",
     "license",
     "references",
-    "acm_spatial_duplicate_key",
-    "acm_spatial_duplicate_count",
 ]
 
 
 def is_valid_coordinate(record: dict) -> bool:
     lat = record.get("acm_decimal_latitude")
     lon = record.get("acm_decimal_longitude")
-    if not isinstance(lat, int | float) or not isinstance(lon, int | float):
-        return False
-    return record.get("acm_coordinate_status") in {"VALID_ORIGINAL", "POSSIBLE_SWAPPED"}
+    return isinstance(lat, int | float) and isinstance(lon, int | float)
 
 
 def spatial_duplicate_key(record: dict) -> str:
@@ -124,9 +116,8 @@ def update_manifest(
     manifest["geopackage_crs"] = "EPSG:4326"
     manifest["geopackage_coordinate_filters"] = {
         "valid_lat_lon": True,
-        "exclude_gbif_geospatial_issues": "except_possible_swapped",
+        "exclude_gbif_geospatial_issues": "except_when_coordinate_swap_falls_inside_brazil_bbox",
         "brazil_approximate_bbox": BRAZIL_BBOX,
-        "included_coordinate_statuses": ["VALID_ORIGINAL", "POSSIBLE_SWAPPED"],
     }
     manifest["geopackage_source"] = str(OCCURRENCES_PATH)
     manifest["geopackage_source_record_count"] = total_records
@@ -160,10 +151,7 @@ def build_geopackage(args: argparse.Namespace) -> None:
     duplicate_features_removed = sum(count - 1 for count in duplicate_counts.values() if count > 1)
 
     for duplicate_key, record in sorted(best_records.items()):
-        duplicate_count = duplicate_counts[duplicate_key]
         row = {field: record.get(field) for field in GPKG_FIELDS}
-        row["acm_spatial_duplicate_key"] = duplicate_key
-        row["acm_spatial_duplicate_count"] = duplicate_count
         rows.append(row)
         geometries.append(Point(record["acm_decimal_longitude"], record["acm_decimal_latitude"]))
 

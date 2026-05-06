@@ -11,32 +11,29 @@ BRAZIL_BBOX = {
 
 def normalize_brazil_coordinate(latitude, longitude, has_geospatial_issue=None) -> dict:
     if not _is_number(latitude) or not _is_number(longitude):
-        return _result(None, None, False, "MISSING_OR_INVALID", "missing_or_invalid_coordinate")
+        return _result(None, None)
 
     lat = float(latitude)
     lon = float(longitude)
     if not _is_valid_world_coordinate(lat, lon):
-        return _result(None, None, False, "INVALID_WORLD_COORDINATE", "outside_world_coordinate_range")
+        return _result(None, None)
 
     if _is_inside_brazil_bbox(lat, lon) and has_geospatial_issue is not True:
-        return _result(lat, lon, False, "VALID_ORIGINAL", None)
+        return _result(lat, lon)
 
     if _is_valid_world_coordinate(lon, lat) and _is_inside_brazil_bbox(lon, lat):
-        return _result(lon, lat, True, "POSSIBLE_SWAPPED", "latitude_longitude_probably_swapped")
+        return _result(lon, lat)
 
     if has_geospatial_issue is True:
-        return _result(None, None, False, "GBIF_GEOSPATIAL_ISSUE", "gbif_geospatial_issue")
+        return _result(None, None)
 
-    return _result(None, None, False, "OUTSIDE_BRAZIL_BBOX", "outside_brazil_approximate_bbox")
+    return _result(None, None)
 
 
-def _result(latitude, longitude, was_swapped: bool, status: str, issue: str | None) -> dict:
+def _result(latitude, longitude) -> dict:
     return {
         "acm_decimal_latitude": latitude,
         "acm_decimal_longitude": longitude,
-        "acm_coordinate_was_swapped": was_swapped,
-        "acm_coordinate_status": status,
-        "acm_coordinate_issue": issue,
     }
 
 

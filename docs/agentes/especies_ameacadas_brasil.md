@@ -461,14 +461,7 @@ longitude: -74 a -28
 Esse filtro nao substitui uma validacao cartografica oficial contra o limite do Brasil.
 Ele serve para remover erros evidentes de coordenada, como pontos em outro continente ou em outro hemisferio, antes da entrega em GeoPackage.
 
-Quando a coordenada original cai fora do Brasil, mas a inversao latitude/longitude cai dentro da caixa aproximada do Brasil, o registro recebe:
-
-```text
-acm_coordinate_status = POSSIBLE_SWAPPED
-acm_coordinate_was_swapped = true
-```
-
-Nesse caso, o GeoPackage usa `acm_decimal_latitude` e `acm_decimal_longitude`.
+Quando a coordenada original cai fora do Brasil, mas a inversao latitude/longitude cai dentro da caixa aproximada do Brasil, o GeoPackage usa a coordenada corrigida nos campos `acm_decimal_latitude` e `acm_decimal_longitude`.
 As coordenadas originais continuam preservadas em `decimal_latitude` e `decimal_longitude`.
 
 Regra de deduplicacao espacial do GeoPackage:
@@ -487,13 +480,6 @@ O registro mantido no `.gpkg` segue esta prioridade:
 3. registro com `references` preenchido
 4. menor `gbif_id` como desempate estavel
 
-O `.gpkg` inclui:
-
-```text
-acm_spatial_duplicate_key
-acm_spatial_duplicate_count
-```
-
 Campos minimos no GeoPackage:
 
 ```text
@@ -508,7 +494,6 @@ basis_of_record
 occurrence_status
 event_date
 acm_event_date
-acm_event_date_precision
 country_code
 state_province
 municipality
@@ -517,11 +502,6 @@ decimal_latitude
 decimal_longitude
 acm_decimal_latitude
 acm_decimal_longitude
-acm_coordinate_was_swapped
-acm_coordinate_status
-acm_coordinate_issue
-acm_spatial_duplicate_key
-acm_spatial_duplicate_count
 coordinate_uncertainty_in_meters
 has_geospatial_issue
 license
@@ -620,8 +600,6 @@ basis_of_record
 occurrence_status
 event_date
 acm_event_date
-acm_event_date_precision
-acm_event_date_issue
 year
 month
 day
@@ -633,9 +611,6 @@ decimal_latitude
 decimal_longitude
 acm_decimal_latitude
 acm_decimal_longitude
-acm_coordinate_was_swapped
-acm_coordinate_status
-acm_coordinate_issue
 coordinate_uncertainty_in_meters
 has_coordinate
 has_geospatial_issue
@@ -660,8 +635,6 @@ Descricoes:
 - `occurrence_status`: status da ocorrencia, geralmente presenca ou ausencia quando informado.
 - `event_date`: data da ocorrencia como veio do GBIF, preservada para rastreabilidade.
 - `acm_event_date`: data normalizada pela ACM no formato `YYYY-MM-DD`, preenchida apenas quando houver dia completo.
-- `acm_event_date_precision`: precisao identificada para `event_date`, como `DAY`, `DATETIME`, `MONTH`, `YEAR`, `RANGE`, `INVALID` ou `MISSING`.
-- `acm_event_date_issue`: observacao tecnica quando a data nao puder ser normalizada, por exemplo `missing_day` ou `invalid_calendar_date`.
 - `year`: ano da ocorrencia.
 - `month`: mes da ocorrencia.
 - `day`: dia da ocorrencia.
@@ -673,9 +646,6 @@ Descricoes:
 - `decimal_longitude`: longitude decimal da ocorrencia quando disponivel.
 - `acm_decimal_latitude`: latitude normalizada pela ACM para uso espacial.
 - `acm_decimal_longitude`: longitude normalizada pela ACM para uso espacial.
-- `acm_coordinate_was_swapped`: indica se latitude e longitude provavelmente vieram invertidas e foram ajustadas nos campos ACM.
-- `acm_coordinate_status`: classificacao da coordenada, como `VALID_ORIGINAL`, `POSSIBLE_SWAPPED`, `OUTSIDE_BRAZIL_BBOX`, `GBIF_GEOSPATIAL_ISSUE` ou `MISSING_OR_INVALID`.
-- `acm_coordinate_issue`: observacao tecnica quando a coordenada nao e diretamente aproveitavel.
 - `coordinate_uncertainty_in_meters`: incerteza da coordenada em metros quando informada.
 - `has_coordinate`: indicador de existencia de coordenada no registro quando informado pelo GBIF.
 - `has_geospatial_issue`: indicador de problema geografico informado pelo GBIF.

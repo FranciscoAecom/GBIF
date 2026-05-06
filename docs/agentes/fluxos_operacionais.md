@@ -188,7 +188,7 @@ O GeoPackage usa as coordenadas ACM (`acm_decimal_latitude` e `acm_decimal_longi
 - latitude e longitude precisam ser validas
 - registros com alerta geoespacial do GBIF sao descartados quando a inversao latitude/longitude nao resolve o problema
 - pontos fora da caixa aproximada do Brasil sao descartados
-- pontos possivelmente invertidos sao exportados com latitude/longitude corrigidas nos campos ACM e `acm_coordinate_was_swapped = true`
+- pontos possivelmente invertidos sao exportados com latitude/longitude corrigidas nos campos ACM
 - duplicidades espaciais sao removidas apenas no GeoPackage
 
 Caixa aproximada usada:
