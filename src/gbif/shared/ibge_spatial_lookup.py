@@ -55,9 +55,7 @@ class IBGELocation:
 
     def as_record_fields(self) -> dict:
         return {
-            "acm_state_code": self.state_code,
             "acm_state_province": self.state_name,
-            "acm_municipality_code": self.municipality_code,
             "acm_municipality": self.municipality_name,
         }
 

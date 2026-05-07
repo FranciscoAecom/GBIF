@@ -35,12 +35,9 @@ GPKG_FIELDS = [
     "acm_event_date",
     "country_code",
     "state_province",
-    "acm_state_code",
     "acm_state_province",
     "municipality",
-    "acm_municipality_code",
     "acm_municipality",
-    "locality",
     "decimal_latitude",
     "decimal_longitude",
     "acm_decimal_latitude",
@@ -50,7 +47,6 @@ GPKG_FIELDS = [
     "license",
     "references",
 ]
-GPKG_TEXT_CODE_FIELDS = {"acm_state_code", "acm_municipality_code"}
 
 
 def is_valid_coordinate(record: dict) -> bool:
@@ -82,11 +78,7 @@ def quality_sort_key(record: dict) -> tuple:
 
 
 def build_geopackage_row(record: dict) -> dict:
-    row = {field: record.get(field) for field in GPKG_FIELDS}
-    for field in GPKG_TEXT_CODE_FIELDS:
-        if row.get(field) is not None:
-            row[field] = str(row[field])
-    return row
+    return {field: record.get(field) for field in GPKG_FIELDS}
 
 
 def build_best_records_by_spatial_key() -> tuple[dict[str, dict], dict[str, int], int, int]:

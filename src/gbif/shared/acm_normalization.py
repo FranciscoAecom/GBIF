@@ -28,7 +28,7 @@ def normalize_threat_status_br(value) -> str:
 
 def normalize_scientific_name(value, fallback=None):
     text = clean_text(value)
-    if text is None or _looks_numeric(text):
+    if text is None or _looks_numeric(text) or _looks_bold_identifier(text):
         return clean_text(fallback)
     return text
 
@@ -46,3 +46,7 @@ def _looks_numeric(text: str) -> bool:
         return True
     except ValueError:
         return False
+
+
+def _looks_bold_identifier(text: str) -> bool:
+    return text.strip().upper().startswith("BOLD:")

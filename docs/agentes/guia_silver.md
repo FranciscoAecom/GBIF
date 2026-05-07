@@ -88,17 +88,15 @@ municipality
 A gold de especies ameacadas cria:
 
 ```text
-acm_state_code
 acm_state_province
-acm_municipality_code
 acm_municipality
 ```
 
 Regras:
 
 - os campos originais `state_province` e `municipality` continuam como vieram do GBIF.
-- `acm_state_province` e `acm_state_code` sao obtidos pela intersecao da coordenada ACM com a malha de estados do IBGE.
-- `acm_municipality` e `acm_municipality_code` sao obtidos pela intersecao da coordenada ACM com a malha de municipios do IBGE.
+- `acm_state_province` e obtido pela intersecao da coordenada ACM com a malha de estados do IBGE.
+- `acm_municipality` e obtido pela intersecao da coordenada ACM com a malha de municipios do IBGE.
 - Quando a ocorrencia nao tem coordenada ACM valida, os campos de localidade ACM ficam `null`.
 
 ## Duplicidade espacial
