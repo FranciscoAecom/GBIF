@@ -3,8 +3,8 @@
 from __future__ import annotations
 
 import argparse
-import json
 
+from src.gbif.gold.threatened_species_brazil_manifest import update_manifest as update_product_manifest
 from src.gbif.gold.shared import write_json
 from src.gbif.gold.threatened_species_brazil_schema import (
     DATASET_FIELDS,
@@ -47,13 +47,12 @@ def build_dataset_record(dataset_key: str, summary: dict, metadata: dict, snapsh
 
 
 def update_manifest(snapshot_date: str, record_count: int) -> None:
-    manifest_path = GOLD_DIR / "manifest.json"
-    manifest = json.loads(manifest_path.read_text(encoding="utf-8")) if manifest_path.exists() else {}
-    manifest.setdefault("outputs", {})
-    manifest["outputs"]["datasets"] = str(DATASETS_PATH)
-    manifest["dataset_snapshot_date"] = snapshot_date
-    manifest["dataset_record_count"] = record_count
-    write_json(manifest_path, manifest)
+    update_product_manifest(
+        {
+            "dataset_snapshot_date": snapshot_date,
+            "dataset_record_count": record_count,
+        }
+    )
 
 
 def build_gold(args: argparse.Namespace) -> None:

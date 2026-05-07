@@ -626,11 +626,11 @@ acm_municipality
 locality
 decimal_latitude
 decimal_longitude
-acm_decimal_latitude
-acm_decimal_longitude
 coordinate_uncertainty_in_meters
 has_coordinate
 has_geospatial_issue
+acm_decimal_latitude
+acm_decimal_longitude
 sampling_event_id
 sampling_protocol
 sampling_effort
@@ -640,6 +640,7 @@ snapshot_date
 bronze_file_path
 threat_status_br
 acm_threat_status_br
+threat_status_br_code
 ```
 
 Descricoes:
@@ -719,6 +720,7 @@ Descricoes:
 - `scientific_name`: nome cientifico associado a ocorrencia. Quando o GBIF traz valor numerico indevido ou identificador tecnico como `BOLD:...`, o pipeline substitui pelo nome da referencia MMA/GBIF reconciliada.
 - `threat_status_br`: categoria de ameaca nacional em texto.
 - `acm_threat_status_br`: categoria de ameaca nacional normalizada pela ACM.
+- `threat_status_br_code`: codigo da categoria nacional, como `VU`, `EN`, `CR`, `RE` ou equivalente observado.
 - `threat_status_br_code`: codigo da categoria nacional, como `VU`, `EN`, `CR`, `RE` ou equivalente observado.
 - `taxon_key`: chave GBIF do taxon associado a ocorrencia.
 - `dataset_key`: dataset GBIF de origem.

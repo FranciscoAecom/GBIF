@@ -3,11 +3,11 @@
 from __future__ import annotations
 
 import argparse
-import json
 
 import geopandas as gpd
 from shapely.geometry import Point
 
+from src.gbif.gold.threatened_species_brazil_manifest import update_manifest as update_product_manifest
 from src.gbif.gold.shared import write_json
 from src.gbif.gold.threatened_species_brazil_schema import (
     GPKG_ATTRIBUTE_FIELDS,
@@ -85,35 +85,34 @@ def update_manifest(
     duplicate_groups: int,
     duplicate_features_removed: int,
 ) -> None:
-    manifest_path = GOLD_DIR / "manifest.json"
-    manifest = json.loads(manifest_path.read_text(encoding="utf-8")) if manifest_path.exists() else {}
-    manifest.setdefault("outputs", {})
-    manifest["outputs"]["geopackage"] = str(GPKG_PATH)
-    manifest["geopackage_layer"] = GPKG_LAYER_NAME
-    manifest["geopackage_crs"] = "EPSG:4326"
-    manifest["geopackage_coordinate_filters"] = {
-        "valid_lat_lon": True,
-        "exclude_gbif_geospatial_issues": "except_when_coordinate_swap_falls_inside_brazil_bbox",
-        "brazil_approximate_bbox": BRAZIL_BBOX,
-    }
-    manifest["geopackage_source"] = str(OCCURRENCES_PATH)
-    manifest["geopackage_source_record_count"] = total_records
-    manifest["geopackage_candidate_feature_count_before_deduplication"] = candidate_records
-    manifest["geopackage_feature_count"] = spatial_records
-    manifest["geopackage_deduplication"] = {
-        "enabled": True,
-        "key": "species_id + acm_decimal_latitude + acm_decimal_longitude rounded to 6 decimals",
-        "duplicate_groups": duplicate_groups,
-        "duplicate_features_removed": duplicate_features_removed,
-        "kept_record_priority": [
-            "acm_event_date filled",
-            "smallest coordinate_uncertainty_in_meters",
-            "references filled",
-            "smallest gbif_id",
-        ],
-        "json_outputs_keep_all_records": True,
-    }
-    write_json(manifest_path, manifest)
+    update_product_manifest(
+        {
+            "geopackage_layer": GPKG_LAYER_NAME,
+            "geopackage_crs": "EPSG:4326",
+            "geopackage_coordinate_filters": {
+                "valid_lat_lon": True,
+                "exclude_gbif_geospatial_issues": "except_when_coordinate_swap_falls_inside_brazil_bbox",
+                "brazil_approximate_bbox": BRAZIL_BBOX,
+            },
+            "geopackage_source": str(OCCURRENCES_PATH),
+            "geopackage_source_record_count": total_records,
+            "geopackage_candidate_feature_count_before_deduplication": candidate_records,
+            "geopackage_feature_count": spatial_records,
+            "geopackage_deduplication": {
+                "enabled": True,
+                "key": "species_id + acm_decimal_latitude + acm_decimal_longitude rounded to 6 decimals",
+                "duplicate_groups": duplicate_groups,
+                "duplicate_features_removed": duplicate_features_removed,
+                "kept_record_priority": [
+                    "acm_event_date filled",
+                    "smallest coordinate_uncertainty_in_meters",
+                    "references filled",
+                    "smallest gbif_id",
+                ],
+                "json_outputs_keep_all_records": True,
+            },
+        }
+    )
 
 
 def build_geopackage(args: argparse.Namespace) -> None:

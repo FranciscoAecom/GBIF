@@ -5,12 +5,12 @@ from __future__ import annotations
 import argparse
 import csv
 import io
-import json
 import sys
 from pathlib import Path
 from zipfile import ZipFile
 
 from src.gbif.gold.shared import write_json
+from src.gbif.gold.threatened_species_brazil_manifest import update_manifest as update_product_manifest
 from src.gbif.gold.threatened_species_brazil_schema import (
     GOLD_DIR,
     OCCURRENCE_FIELDS,
@@ -111,6 +111,93 @@ def find_species(row: dict, species_by_taxon_key: dict[int, dict]) -> dict:
     return {}
 
 
+def build_identity_fields(row: dict, species: dict, snapshot_date: str) -> dict:
+    gbif_id = parse_int(first_row_value(row, "gbifID", "key", "id"))
+    scientific_name = normalize_scientific_name(
+        first_row_value(row, "scientificName"),
+        fallback=species.get("scientific_name"),
+    )
+    return {
+        "record_id": f"GBIF_{gbif_id}_{snapshot_date}" if gbif_id else None,
+        "gbif_id": gbif_id,
+        "species_id": species.get("species_id"),
+        "scientific_name": scientific_name,
+        "taxon_key": parse_int(first_row_value(row, "taxonKey")) or species.get("taxon_key"),
+    }
+
+
+def build_source_fields(row: dict) -> dict:
+    return {
+        "dataset_key": clean_uuid(first_row_value(row, "datasetKey")),
+        "basis_of_record": clean_text(first_row_value(row, "basisOfRecord")),
+        "occurrence_status": clean_text(first_row_value(row, "occurrenceStatus")),
+    }
+
+
+def build_date_fields(row: dict) -> dict:
+    event_date = clean_text(first_row_value(row, "eventDate"))
+    return {
+        "event_date": event_date,
+        **normalize_event_date(event_date),
+        "year": parse_int(first_row_value(row, "year")),
+        "month": parse_int(first_row_value(row, "month")),
+        "day": parse_int(first_row_value(row, "day")),
+    }
+
+
+def build_location_fields(row: dict, normalized_coordinate: dict, ibge_lookup: IBGESpatialLookup) -> dict:
+    ibge_location = ibge_lookup.lookup(
+        normalized_coordinate.get("acm_decimal_latitude"),
+        normalized_coordinate.get("acm_decimal_longitude"),
+    )
+    return {
+        "country_code": clean_text(first_row_value(row, "countryCode")),
+        "state_province": clean_text(first_row_value(row, "stateProvince")),
+        "municipality": clean_text(first_row_value(row, "municipality")),
+        **ibge_location.as_record_fields(),
+        "locality": clean_text(first_row_value(row, "locality")),
+    }
+
+
+def build_coordinate_fields(row: dict) -> dict:
+    decimal_latitude = parse_float(first_row_value(row, "decimalLatitude"))
+    decimal_longitude = parse_float(first_row_value(row, "decimalLongitude"))
+    has_geospatial_issue = parse_bool(first_row_value(row, "hasGeospatialIssues", "hasGeospatialIssue"))
+    return {
+        "decimal_latitude": decimal_latitude,
+        "decimal_longitude": decimal_longitude,
+        "coordinate_uncertainty_in_meters": parse_float(first_row_value(row, "coordinateUncertaintyInMeters")),
+        "has_coordinate": parse_bool(first_row_value(row, "hasCoordinate")),
+        "has_geospatial_issue": has_geospatial_issue,
+        **normalize_brazil_coordinate(
+            decimal_latitude,
+            decimal_longitude,
+            has_geospatial_issue=has_geospatial_issue,
+        ),
+    }
+
+
+def build_sampling_fields(row: dict) -> dict:
+    return {
+        "sampling_event_id": clean_text(first_row_value(row, "eventID")),
+        "sampling_protocol": clean_text(first_row_value(row, "samplingProtocol")),
+        "sampling_effort": clean_text(first_row_value(row, "samplingEffort")),
+    }
+
+
+def build_reference_fields(row: dict, archive_path: Path, snapshot_date: str, species: dict) -> dict:
+    threat_status_br = species.get("threat_status_br")
+    return {
+        "license": clean_text(first_row_value(row, "license")),
+        "references": clean_text(first_row_value(row, "references")),
+        "snapshot_date": snapshot_date,
+        "bronze_file_path": f"{archive_path}::occurrence.txt",
+        "threat_status_br": threat_status_br,
+        "acm_threat_status_br": normalize_threat_status_br(threat_status_br),
+        "threat_status_br_code": species.get("threat_status_br_code"),
+    }
+
+
 def transform_occurrence(
     row: dict,
     archive_path: Path,
@@ -121,63 +208,16 @@ def transform_occurrence(
     species = find_species(row, species_by_taxon_key)
     if not species:
         return None
-    gbif_id = parse_int(first_row_value(row, "gbifID", "key", "id"))
-    event_date = clean_text(first_row_value(row, "eventDate"))
-    decimal_latitude = parse_float(first_row_value(row, "decimalLatitude"))
-    decimal_longitude = parse_float(first_row_value(row, "decimalLongitude"))
-    has_geospatial_issue = parse_bool(first_row_value(row, "hasGeospatialIssues", "hasGeospatialIssue"))
-    scientific_name = normalize_scientific_name(
-        first_row_value(row, "scientificName"),
-        fallback=species.get("scientific_name"),
-    )
-    state_province = clean_text(first_row_value(row, "stateProvince"))
-    municipality = clean_text(first_row_value(row, "municipality"))
-    threat_status_br = species.get("threat_status_br")
-    normalized_coordinate = normalize_brazil_coordinate(
-        decimal_latitude,
-        decimal_longitude,
-        has_geospatial_issue=has_geospatial_issue,
-    )
-    ibge_location = ibge_lookup.lookup(
-        normalized_coordinate.get("acm_decimal_latitude"),
-        normalized_coordinate.get("acm_decimal_longitude"),
-    )
 
+    coordinate_fields = build_coordinate_fields(row)
     return {
-        "record_id": f"GBIF_{gbif_id}_{snapshot_date}" if gbif_id else None,
-        "gbif_id": gbif_id,
-        "species_id": species.get("species_id"),
-        "scientific_name": scientific_name,
-        "taxon_key": parse_int(first_row_value(row, "taxonKey")) or species.get("taxon_key"),
-        "dataset_key": clean_uuid(first_row_value(row, "datasetKey")),
-        "basis_of_record": clean_text(first_row_value(row, "basisOfRecord")),
-        "occurrence_status": clean_text(first_row_value(row, "occurrenceStatus")),
-        "event_date": event_date,
-        **normalize_event_date(event_date),
-        "year": parse_int(first_row_value(row, "year")),
-        "month": parse_int(first_row_value(row, "month")),
-        "day": parse_int(first_row_value(row, "day")),
-        "country_code": clean_text(first_row_value(row, "countryCode")),
-        "state_province": state_province,
-        "municipality": municipality,
-        **ibge_location.as_record_fields(),
-        "locality": clean_text(first_row_value(row, "locality")),
-        "decimal_latitude": decimal_latitude,
-        "decimal_longitude": decimal_longitude,
-        "coordinate_uncertainty_in_meters": parse_float(first_row_value(row, "coordinateUncertaintyInMeters")),
-        "has_coordinate": parse_bool(first_row_value(row, "hasCoordinate")),
-        "has_geospatial_issue": has_geospatial_issue,
-        **normalized_coordinate,
-        "sampling_event_id": clean_text(first_row_value(row, "eventID")),
-        "sampling_protocol": clean_text(first_row_value(row, "samplingProtocol")),
-        "sampling_effort": clean_text(first_row_value(row, "samplingEffort")),
-        "license": clean_text(first_row_value(row, "license")),
-        "references": clean_text(first_row_value(row, "references")),
-        "snapshot_date": snapshot_date,
-        "bronze_file_path": f"{archive_path}::occurrence.txt",
-        "threat_status_br": threat_status_br,
-        "acm_threat_status_br": normalize_threat_status_br(threat_status_br),
-        "threat_status_br_code": species.get("threat_status_br_code"),
+        **build_identity_fields(row, species, snapshot_date),
+        **build_source_fields(row),
+        **build_date_fields(row),
+        **build_location_fields(row, coordinate_fields, ibge_lookup),
+        **coordinate_fields,
+        **build_sampling_fields(row),
+        **build_reference_fields(row, archive_path, snapshot_date, species),
     }
 
 
@@ -194,27 +234,25 @@ def write_records(records, output_path: Path) -> dict:
 def update_manifest(
     snapshot_date: str, archive_path: Path, download_key: str | None, record_count: int, skipped_unmatched_count: int
 ) -> None:
-    manifest_path = GOLD_DIR / "manifest.json"
-    manifest = json.loads(manifest_path.read_text(encoding="utf-8")) if manifest_path.exists() else {}
-    manifest.setdefault("product", "threatened_species_brazil")
-    manifest["occurrence_snapshot_date"] = snapshot_date
-    manifest["occurrence_bronze_download_zip"] = str(archive_path)
-    manifest["occurrence_download_key"] = download_key or archive_path.stem
-    manifest["ibge_reference_path"] = "data/gbif/00_reference/ibge"
-    manifest["ibge_spatial_lookup"] = {
-        "enabled": True,
-        "input_coordinate_fields": ["acm_decimal_latitude", "acm_decimal_longitude"],
-        "outputs": [
-            "acm_state_province",
-            "acm_municipality",
-        ],
-        "method": "point-in-polygon against IBGE simplified GeoJSON meshes",
-    }
-    manifest.setdefault("outputs", {})
-    manifest["outputs"]["occurrences"] = str(OCCURRENCES_PATH)
-    manifest["occurrence_record_count"] = record_count
-    manifest["occurrence_skipped_unmatched_count"] = skipped_unmatched_count
-    write_json(manifest_path, manifest)
+    update_product_manifest(
+        {
+            "occurrence_snapshot_date": snapshot_date,
+            "occurrence_bronze_download_zip": str(archive_path),
+            "occurrence_download_key": download_key or archive_path.stem,
+            "ibge_reference_path": "data/gbif/00_reference/ibge",
+            "ibge_spatial_lookup": {
+                "enabled": True,
+                "input_coordinate_fields": ["acm_decimal_latitude", "acm_decimal_longitude"],
+                "outputs": [
+                    "acm_state_province",
+                    "acm_municipality",
+                ],
+                "method": "point-in-polygon against IBGE simplified GeoJSON meshes",
+            },
+            "occurrence_record_count": record_count,
+            "occurrence_skipped_unmatched_count": skipped_unmatched_count,
+        }
+    )
 
 
 def build_gold(args: argparse.Namespace) -> None:

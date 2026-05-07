@@ -1,16 +1,38 @@
 from __future__ import annotations
 
+import re
 import unittest
+from pathlib import Path
 
-from src.gbif.gold.threatened_species_brazil_schema import GPKG_ATTRIBUTE_FIELDS, OCCURRENCE_FIELDS
+from src.gbif.gold.threatened_species_brazil_schema import (
+    GPKG_DOCUMENTED_FIELDS,
+    GPKG_ATTRIBUTE_FIELDS,
+    OCCURRENCE_FIELDS,
+)
 from src.gbif.shared.acm_normalization import normalize_scientific_name, normalize_threat_status_br
+
+
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+THREATENED_SPECIES_DOC = PROJECT_ROOT / "docs/agentes/especies_ameacadas_brasil.md"
+
+
+def documented_fields(section_title: str) -> list[str]:
+    text = THREATENED_SPECIES_DOC.read_text(encoding="utf-8")
+    section_start = text.index(f"### `{section_title}`")
+    fields_start = text.index("```text", section_start) + len("```text")
+    fields_end = text.index("```", fields_start)
+    return [
+        line.strip()
+        for line in text[fields_start:fields_end].splitlines()
+        if re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", line.strip())
+    ]
 
 
 class ThreatenedSpeciesBrazilTests(unittest.TestCase):
     def test_threat_status_only_requested_values_become_outros(self) -> None:
-        self.assertEqual(normalize_threat_status_br("[Não é espécie brasileira]"), "Outros")
-        self.assertEqual(normalize_threat_status_br("[Não é mais táxon válido]"), "Outros")
-        self.assertEqual(normalize_threat_status_br("Subespécie que sai da Lista"), "Outros")
+        self.assertEqual(normalize_threat_status_br("[Nao e especie brasileira]"), "Outros")
+        self.assertEqual(normalize_threat_status_br("[Nao e mais taxon valido]"), "Outros")
+        self.assertEqual(normalize_threat_status_br("Subespecie que sai da Lista"), "Outros")
         self.assertEqual(normalize_threat_status_br("Extinta (EX)"), "Extinta (EX)")
         self.assertEqual(normalize_threat_status_br("Dados Insuficientes (DD)"), "Dados Insuficientes (DD)")
 
@@ -45,6 +67,12 @@ class ThreatenedSpeciesBrazilTests(unittest.TestCase):
             "license",
         }
         self.assertEqual(set(GPKG_ATTRIBUTE_FIELDS) & audit_only_fields, set())
+
+    def test_documented_occurrence_fields_match_schema(self) -> None:
+        self.assertEqual(documented_fields("occurrences.json"), OCCURRENCE_FIELDS)
+
+    def test_documented_geopackage_fields_match_schema(self) -> None:
+        self.assertEqual(documented_fields("threatened_species_occurrences.gpkg"), GPKG_DOCUMENTED_FIELDS)
 
 
 if __name__ == "__main__":
