@@ -45,6 +45,18 @@ uv run python -m src.gbif.gold.build_threatened_species_datasets
 uv run python -m src.gbif.gold.build_threatened_species_geopackage
 ```
 
+Fluxo principal em comando unico, quando o ZIP do GBIF ja estiver baixado:
+
+```powershell
+uv run python -m src.gbif.gold.run_threatened_species_pipeline --date YYYYMMDD --snapshot-date YYYY-MM-DD --download-key <download_key>
+```
+
+Validacao final dos produtos ja gerados:
+
+```powershell
+uv run python -m src.gbif.gold.validate_threatened_species_brazil
+```
+
 Observacoes:
 
 - `download_official_reference` baixa recursos CSV/PDF do conjunto oficial do MMA em Dados Abertos.
@@ -61,6 +73,8 @@ Observacoes:
 - `build_threatened_species_occurrences` tambem cruza as coordenadas ACM com a malha IBGE para preencher `acm_state_province` e `acm_municipality`.
 - `build_threatened_species_datasets` gera `datasets.json` a partir dos `dataset_key` observados nas ocorrencias e metadados publicos do GBIF, lendo `occurrences.json` em streaming.
 - `build_threatened_species_geopackage` gera `threatened_species_occurrences.gpkg` com ocorrencias georreferenciadas em `EPSG:4326`, gravando em lotes para suportar volumes grandes.
+- `run_threatened_species_pipeline` executa species, occurrences, datasets e GeoPackage em sequencia.
+- `validate_threatened_species_brazil` confere se JSON, GPKG, schema e manifest estao coerentes.
 - Para carga grande de ocorrencias, usar a Download API assincrona.
 - A referencia MMA 2021 em CSV e a referencia operacional da primeira versao; antes da gold final normativa, validar contra as portarias MMA vigentes.
 - Para a primeira versao operacional, foi decidido usar MMA Dados Abertos 2021 como referencia da gold.
