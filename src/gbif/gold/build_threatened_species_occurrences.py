@@ -258,7 +258,9 @@ def update_manifest(
 def build_gold(args: argparse.Namespace) -> None:
     snapshot_date = snapshot_date_iso(args.date)
     archive_path = find_download_zip(args.date, args.download_key)
+    print(f"loading GBIF threatened species reference from {GOLD_DIR}")
     species_by_taxon_key = load_species_by_taxon_key()
+    print("loading IBGE spatial lookup")
     ibge_lookup = IBGESpatialLookup()
 
     counters = {"skipped_unmatched_count": 0}
@@ -272,6 +274,8 @@ def build_gold(args: argparse.Namespace) -> None:
             yield record
 
     GOLD_DIR.mkdir(parents=True, exist_ok=True)
+    print(f"reading GBIF DWCA archive: {archive_path}")
+    print(f"writing occurrence gold records to {OCCURRENCES_PATH}")
     quality_report = write_records(records(), OCCURRENCES_PATH)
     quality_report["skipped_unmatched_count"] = counters["skipped_unmatched_count"]
     write_json(GOLD_DIR / "occurrences_quality_report.json", quality_report)

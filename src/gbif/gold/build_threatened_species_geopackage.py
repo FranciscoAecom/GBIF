@@ -58,6 +58,7 @@ def build_best_records_by_spatial_key() -> tuple[dict[str, dict], dict[str, int]
     total_records = 0
     candidate_records = 0
 
+    print(f"reading occurrence records from {OCCURRENCES_PATH}")
     for record in iter_json_array(OCCURRENCES_PATH):
         total_records += 1
         if not is_valid_coordinate(record):
@@ -126,6 +127,7 @@ def build_geopackage(args: argparse.Namespace) -> None:
     duplicate_groups = sum(1 for count in duplicate_counts.values() if count > 1)
     duplicate_features_removed = sum(count - 1 for count in duplicate_counts.values() if count > 1)
 
+    print(f"writing GeoPackage layer {GPKG_LAYER_NAME} to {GPKG_PATH}")
     for duplicate_key, record in sorted(best_records.items()):
         rows.append(build_geopackage_row(record))
         geometries.append(Point(record["acm_decimal_longitude"], record["acm_decimal_latitude"]))

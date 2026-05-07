@@ -56,6 +56,7 @@ def update_manifest(snapshot_date: str, record_count: int) -> None:
 
 
 def build_gold(args: argparse.Namespace) -> None:
+    print(f"reading occurrence records from {OCCURRENCES_PATH}")
     snapshot_dates = set()
     summaries_by_dataset: dict[str, dict] = {}
     invalid_dataset_keys: dict[str, int] = {}
@@ -87,6 +88,7 @@ def build_gold(args: argparse.Namespace) -> None:
     client = GbifApiClient(timeout=args.timeout, sleep_seconds=args.sleep_seconds)
     dataset_records = []
     failures = []
+    print(f"fetching GBIF metadata for {len(summaries_by_dataset)} datasets")
     for index, (dataset_key, summary) in enumerate(sorted(summaries_by_dataset.items()), start=1):
         try:
             metadata = fetch_dataset_metadata(client, dataset_key)
@@ -97,6 +99,7 @@ def build_gold(args: argparse.Namespace) -> None:
             dataset_records.append(build_dataset_record(dataset_key, summary, {}, snapshot_date))
             print(f"{index}/{len(summaries_by_dataset)} failed dataset={dataset_key}: {exc}")
 
+    print(f"writing dataset gold records to {DATASETS_PATH}")
     write_json(DATASETS_PATH, dataset_records)
     quality_report = build_quality_report(dataset_records, DATASET_FIELDS)
     quality_report["metadata_fetch_failures"] = failures
