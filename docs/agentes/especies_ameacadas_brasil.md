@@ -500,13 +500,6 @@ state_province
 acm_state_province
 municipality
 acm_municipality
-decimal_latitude
-decimal_longitude
-acm_decimal_latitude
-acm_decimal_longitude
-coordinate_uncertainty_in_meters
-has_geospatial_issue
-license
 references
 ```
 
@@ -684,6 +677,61 @@ Descricoes:
 - `references`: URL ou referencia publica associada a ocorrencia.
 - `snapshot_date`: data de geracao ou referencia do produto gold.
 - `bronze_file_path`: rastreabilidade ate o bruto usado na transformacao.
+
+### `threatened_species_occurrences.gpkg`
+
+Unidade de registro: uma feicao espacial de ocorrencia de especie ameacada no Brasil.
+
+O GeoPackage e derivado de `occurrences.json`, mas e mais enxuto para consumo em mapa.
+Ele mantem uma feicao por especie/ponto apos a regra de deduplicacao espacial.
+
+```text
+fid
+geom
+record_id
+gbif_id
+species_id
+scientific_name
+threat_status_br
+acm_threat_status_br
+threat_status_br_code
+taxon_key
+dataset_key
+basis_of_record
+occurrence_status
+event_date
+acm_event_date
+country_code
+state_province
+acm_state_province
+municipality
+acm_municipality
+references
+```
+
+Descricoes:
+
+- `fid`: identificador interno da feicao no GeoPackage.
+- `geom`: geometria pontual da ocorrencia em `EPSG:4326`.
+- `record_id`: identificador unico do registro no produto gold.
+- `gbif_id`: identificador original da ocorrencia no GBIF.
+- `species_id`: chave de ligacao com `species.json`.
+- `scientific_name`: nome cientifico associado a ocorrencia. Quando o GBIF traz valor numerico indevido ou identificador tecnico como `BOLD:...`, o pipeline substitui pelo nome da referencia MMA/GBIF reconciliada.
+- `threat_status_br`: categoria de ameaca nacional em texto.
+- `acm_threat_status_br`: categoria de ameaca nacional normalizada pela ACM.
+- `threat_status_br_code`: codigo da categoria nacional, como `VU`, `EN`, `CR`, `RE` ou equivalente observado.
+- `taxon_key`: chave GBIF do taxon associado a ocorrencia.
+- `dataset_key`: dataset GBIF de origem.
+- `basis_of_record`: tipo do registro, como especime preservado, observacao humana ou outro.
+- `occurrence_status`: status da ocorrencia, geralmente presenca ou ausencia quando informado.
+- `event_date`: data da ocorrencia como veio do GBIF, preservada para rastreabilidade.
+- `acm_event_date`: data normalizada pela ACM no formato `YYYY-MM-DD`, preenchida apenas quando houver dia completo.
+- `country_code`: deve ser `BR` para este produto.
+- `state_province`: estado, provincia ou regiao administrativa informada no registro.
+- `acm_state_province`: nome do estado IBGE obtido por intersecao espacial da coordenada ACM.
+- `municipality`: municipio informado no registro.
+- `acm_municipality`: nome do municipio IBGE obtido por intersecao espacial da coordenada ACM.
+- `references`: URL ou referencia publica associada a ocorrencia.
 
 ### `datasets.json`
 

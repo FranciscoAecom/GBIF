@@ -38,13 +38,6 @@ GPKG_FIELDS = [
     "acm_state_province",
     "municipality",
     "acm_municipality",
-    "decimal_latitude",
-    "decimal_longitude",
-    "acm_decimal_latitude",
-    "acm_decimal_longitude",
-    "coordinate_uncertainty_in_meters",
-    "has_geospatial_issue",
-    "license",
     "references",
 ]
 
