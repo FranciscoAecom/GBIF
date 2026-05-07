@@ -77,6 +77,14 @@ O schema canonico inicial desse produto esta documentado em:
 docs/agentes/especies_ameacadas_brasil.md
 ```
 
+As listas canonicas de campos usadas pelo codigo ficam centralizadas em:
+
+```text
+src/gbif/gold/threatened_species_brazil_schema.py
+```
+
+Alteracoes de campos em `species.json`, `occurrences.json`, `datasets.json` ou `threatened_species_occurrences.gpkg` devem partir desse modulo para reduzir divergencia entre codigo, schema e documentacao.
+
 O metodo de construcao desse produto tambem esta documentado nesse arquivo, incluindo o papel de `checklist`, `occurrence`, `metadata` e `sampling_event`.
 
 ## Regras

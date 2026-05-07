@@ -4,42 +4,20 @@ from __future__ import annotations
 
 import argparse
 import json
-from pathlib import Path
 
 import geopandas as gpd
 from shapely.geometry import Point
 
 from src.gbif.gold.shared import write_json
+from src.gbif.gold.threatened_species_brazil_schema import (
+    GPKG_ATTRIBUTE_FIELDS,
+    GPKG_LAYER_NAME,
+    GPKG_PATH,
+    GOLD_DIR,
+    OCCURRENCES_PATH,
+)
 from src.gbif.shared.coordinate_normalization import BRAZIL_BBOX
 from src.gbif.shared.json_stream import iter_json_array
-
-
-GOLD_DIR = Path("data/gbif/03_gold/threatened_species_brazil")
-OCCURRENCES_PATH = GOLD_DIR / "occurrences.json"
-GPKG_PATH = GOLD_DIR / "threatened_species_occurrences.gpkg"
-LAYER_NAME = "threatened_species_occurrences"
-
-GPKG_FIELDS = [
-    "record_id",
-    "gbif_id",
-    "species_id",
-    "scientific_name",
-    "threat_status_br",
-    "acm_threat_status_br",
-    "threat_status_br_code",
-    "taxon_key",
-    "dataset_key",
-    "basis_of_record",
-    "occurrence_status",
-    "event_date",
-    "acm_event_date",
-    "country_code",
-    "state_province",
-    "acm_state_province",
-    "municipality",
-    "acm_municipality",
-    "references",
-]
 
 
 def is_valid_coordinate(record: dict) -> bool:
@@ -71,7 +49,7 @@ def quality_sort_key(record: dict) -> tuple:
 
 
 def build_geopackage_row(record: dict) -> dict:
-    return {field: record.get(field) for field in GPKG_FIELDS}
+    return {field: record.get(field) for field in GPKG_ATTRIBUTE_FIELDS}
 
 
 def build_best_records_by_spatial_key() -> tuple[dict[str, dict], dict[str, int], int, int]:
@@ -97,7 +75,7 @@ def build_best_records_by_spatial_key() -> tuple[dict[str, dict], dict[str, int]
 
 def write_batch(rows: list[dict], geometries: list[Point], append: bool) -> None:
     gdf = gpd.GeoDataFrame(rows, geometry=geometries, crs="EPSG:4326")
-    gdf.to_file(GPKG_PATH, layer=LAYER_NAME, driver="GPKG", mode="a" if append else "w")
+    gdf.to_file(GPKG_PATH, layer=GPKG_LAYER_NAME, driver="GPKG", mode="a" if append else "w")
 
 
 def update_manifest(
@@ -111,7 +89,7 @@ def update_manifest(
     manifest = json.loads(manifest_path.read_text(encoding="utf-8")) if manifest_path.exists() else {}
     manifest.setdefault("outputs", {})
     manifest["outputs"]["geopackage"] = str(GPKG_PATH)
-    manifest["geopackage_layer"] = LAYER_NAME
+    manifest["geopackage_layer"] = GPKG_LAYER_NAME
     manifest["geopackage_crs"] = "EPSG:4326"
     manifest["geopackage_coordinate_filters"] = {
         "valid_lat_lon": True,

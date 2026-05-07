@@ -11,6 +11,11 @@ from pathlib import Path
 from zipfile import ZipFile
 
 from src.gbif.gold.shared import write_json
+from src.gbif.gold.threatened_species_brazil_schema import (
+    GOLD_DIR,
+    OCCURRENCE_FIELDS,
+    OCCURRENCES_PATH,
+)
 from src.gbif.reference.threatened_species_brazil.filters import (
     load_reference_records,
     operational_species_by_taxon_key,
@@ -29,47 +34,7 @@ from src.gbif.shared.paths import bronze_snapshot_dir
 from src.gbif.shared.quality_checks import empty_quality_counts, update_quality_counts
 
 
-GOLD_DIR = Path("data/gbif/03_gold/threatened_species_brazil")
 CSV_FIELD_SIZE_LIMIT = sys.maxsize
-
-OCCURRENCE_FIELDS = [
-    "record_id",
-    "gbif_id",
-    "species_id",
-    "scientific_name",
-    "taxon_key",
-    "dataset_key",
-    "basis_of_record",
-    "occurrence_status",
-    "event_date",
-    "acm_event_date",
-    "year",
-    "month",
-    "day",
-    "country_code",
-    "state_province",
-    "acm_state_province",
-    "municipality",
-    "acm_municipality",
-    "locality",
-    "decimal_latitude",
-    "decimal_longitude",
-    "coordinate_uncertainty_in_meters",
-    "has_coordinate",
-    "has_geospatial_issue",
-    "acm_decimal_latitude",
-    "acm_decimal_longitude",
-    "sampling_event_id",
-    "sampling_protocol",
-    "sampling_effort",
-    "license",
-    "references",
-    "snapshot_date",
-    "bronze_file_path",
-    "threat_status_br",
-    "acm_threat_status_br",
-    "threat_status_br_code",
-]
 
 
 def load_species_by_taxon_key() -> dict[int, dict]:
@@ -246,7 +211,7 @@ def update_manifest(
         "method": "point-in-polygon against IBGE simplified GeoJSON meshes",
     }
     manifest.setdefault("outputs", {})
-    manifest["outputs"]["occurrences"] = str(GOLD_DIR / "occurrences.json")
+    manifest["outputs"]["occurrences"] = str(OCCURRENCES_PATH)
     manifest["occurrence_record_count"] = record_count
     manifest["occurrence_skipped_unmatched_count"] = skipped_unmatched_count
     write_json(manifest_path, manifest)
@@ -269,7 +234,7 @@ def build_gold(args: argparse.Namespace) -> None:
             yield record
 
     GOLD_DIR.mkdir(parents=True, exist_ok=True)
-    quality_report = write_records(records(), GOLD_DIR / "occurrences.json")
+    quality_report = write_records(records(), OCCURRENCES_PATH)
     quality_report["skipped_unmatched_count"] = counters["skipped_unmatched_count"]
     write_json(GOLD_DIR / "occurrences_quality_report.json", quality_report)
     update_manifest(
@@ -279,7 +244,7 @@ def build_gold(args: argparse.Namespace) -> None:
         quality_report["record_count"],
         counters["skipped_unmatched_count"],
     )
-    print(f"saved {quality_report['record_count']} threatened occurrence records to {GOLD_DIR / 'occurrences.json'}")
+    print(f"saved {quality_report['record_count']} threatened occurrence records to {OCCURRENCES_PATH}")
 
 
 def main() -> None:

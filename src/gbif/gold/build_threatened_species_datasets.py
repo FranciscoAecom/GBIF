@@ -4,36 +4,18 @@ from __future__ import annotations
 
 import argparse
 import json
-from pathlib import Path
 
 from src.gbif.gold.shared import write_json
+from src.gbif.gold.threatened_species_brazil_schema import (
+    DATASET_FIELDS,
+    DATASETS_PATH,
+    GOLD_DIR,
+    OCCURRENCES_PATH,
+)
 from src.gbif.shared.api_client import GbifApiClient
 from src.gbif.shared.json_stream import iter_json_array
 from src.gbif.shared.normalize import clean_uuid
 from src.gbif.shared.quality_checks import build_quality_report
-
-
-GOLD_DIR = Path("data/gbif/03_gold/threatened_species_brazil")
-OCCURRENCES_PATH = GOLD_DIR / "occurrences.json"
-DATASETS_PATH = GOLD_DIR / "datasets.json"
-
-DATASET_FIELDS = [
-    "dataset_key",
-    "dataset_title",
-    "dataset_type",
-    "publishing_org_key",
-    "hosting_org_key",
-    "doi",
-    "license",
-    "homepage",
-    "citation",
-    "record_count_total",
-    "threatened_species_record_count",
-    "threatened_species_count",
-    "source_occurrence_count",
-    "snapshot_date",
-    "bronze_file_path",
-]
 
 
 def fetch_dataset_metadata(client: GbifApiClient, dataset_key: str) -> dict:
